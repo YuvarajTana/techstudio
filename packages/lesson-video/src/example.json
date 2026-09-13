@@ -1,0 +1,155 @@
+{
+  "schema": "lesson-video/v1",
+  "id": "api-request-students",
+  "title": "What happens when you send an API request?",
+  "domain": "software-fundamentals",
+  "audience": "students",
+  "locale": "en",
+  "objectives": [
+    "Trace a request from a client through an API to a database and back.",
+    "Explain why a failed dependency changes the response."
+  ],
+  "prerequisites": ["Recognize a browser and a server."],
+  "sourceNotes": [
+    "Illustrative teaching example: this API reads one item from one database.",
+    "Many APIs do not use databases; error behavior depends on the application."
+  ],
+  "template": { "id": "concept-walkthrough", "version": "1.0.0" },
+  "theme": "teckstudio-light",
+  "output": { "preset": "landscape-1080p", "fps": 30 },
+  "narration": { "mode": "none" },
+  "assets": [],
+  "scenes": [
+    {
+      "id": "outcome",
+      "type": "title",
+      "durationFrames": 180,
+      "title": "Follow one API request",
+      "subtitle": "See who asks, who handles the request, and where the data comes from."
+    },
+    {
+      "id": "request-flow",
+      "type": "diagram",
+      "durationFrames": 420,
+      "title": "A successful request",
+      "layout": "left-to-right",
+      "nodes": [
+        { "id": "client", "label": "Client" },
+        { "id": "api", "label": "API server" },
+        { "id": "db", "label": "Database" }
+      ],
+      "edges": [
+        {
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "label": "Request item"
+        },
+        { "id": "query", "from": "api", "to": "db", "label": "Look up item" },
+        { "id": "result", "from": "db", "to": "api", "label": "Return data" },
+        {
+          "id": "response",
+          "from": "api",
+          "to": "client",
+          "label": "Send response"
+        }
+      ],
+      "steps": [
+        {
+          "atFrame": 0,
+          "label": "The client asks for an item.",
+          "activeNodeIds": ["client"],
+          "activeEdgeIds": ["request"]
+        },
+        {
+          "atFrame": 90,
+          "label": "The API requests the data it needs.",
+          "activeNodeIds": ["api"],
+          "activeEdgeIds": ["query"]
+        },
+        {
+          "atFrame": 180,
+          "label": "The database returns a result.",
+          "activeNodeIds": ["db"],
+          "activeEdgeIds": ["result"]
+        },
+        {
+          "atFrame": 270,
+          "label": "The API builds a response for the client.",
+          "activeNodeIds": ["api", "client"],
+          "activeEdgeIds": ["response"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-failure",
+      "type": "diagram",
+      "durationFrames": 450,
+      "title": "What if the database is unavailable?",
+      "layout": "left-to-right",
+      "nodes": [
+        { "id": "client", "label": "Client" },
+        { "id": "api", "label": "API server" },
+        { "id": "db", "label": "Database" }
+      ],
+      "edges": [
+        {
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "label": "Request item"
+        },
+        { "id": "query", "from": "api", "to": "db", "label": "Look up item" },
+        {
+          "id": "error-response",
+          "from": "api",
+          "to": "client",
+          "label": "Error response"
+        }
+      ],
+      "steps": [
+        {
+          "atFrame": 0,
+          "label": "The client sends the same request.",
+          "activeNodeIds": ["client"],
+          "activeEdgeIds": ["request"]
+        },
+        {
+          "atFrame": 120,
+          "label": "This time the lookup cannot complete.",
+          "activeNodeIds": ["api", "db"],
+          "activeEdgeIds": ["query"],
+          "nodeStates": { "db": "unavailable" }
+        },
+        {
+          "atFrame": 270,
+          "label": "In this example, the API handles the failure and returns an error.",
+          "activeNodeIds": ["api", "client"],
+          "activeEdgeIds": ["error-response"],
+          "nodeStates": { "db": "unavailable" }
+        }
+      ]
+    },
+    {
+      "id": "practice",
+      "type": "question",
+      "durationFrames": 300,
+      "prompt": "In this example, which component sends the response to the client?",
+      "answer": "The API server.",
+      "explanation": "It uses the database result or handles a failure before responding.",
+      "revealAtFrame": 210
+    },
+    {
+      "id": "recap",
+      "type": "recap",
+      "durationFrames": 270,
+      "title": "Trace it yourself",
+      "points": [
+        "The client sends a request.",
+        "The API handles it and may consult a dependency.",
+        "The result or failure affects the response."
+      ],
+      "nextTask": "Draw the request and response arrows, then explain the failure case."
+    }
+  ]
+}

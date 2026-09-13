@@ -1,0 +1,66 @@
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/venv/
+.venv/
+venv/
+
+# Build artifacts
+dist/
+frontend/dist/
+build/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and local caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/.npm-cache/
+
+
+# Runtime uploads and generated media
+backend/media/generated_assets/
+backend/media/uploads/
+backend/media/processed-images/
+backend/media/fonts/
+
+# Temporary video rendering
+backend/media/video-renders/
+backend/tmp/
+backend/.runtime/
+
+# Generated render frames
+backend/media/**/frame-*.png
+
+# Local database/runtime files
+.local/
+*.sqlite
+*.sqlite3
+*.db
+
+# Accidental nested local clone
+techstudio/

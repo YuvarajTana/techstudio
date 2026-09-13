@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* ── Premium Dark AI-Design-Platform Palette ── */
+  --color-editor-bg: #08080D;
+  --color-panel-bg: #101018;
+  --color-panel-header: #12121B;
+  --color-panel-border: rgba(255, 255, 255, 0.08);
+  --color-panel-hover: #181824;
+  --color-accent-purple: #8B5CF6;
+  --color-accent-purple-hover: #7C3AED;
+  --color-accent-pink: #A855F7;
+  --color-accent-cyan: #22D3EE;
+
+  /* ── Named Surfaces ── */
+  --color-surface-primary: #08080D;
+  --color-surface-secondary: #0E0E16;
+  --color-surface-sidebar: #101018;
+  --color-surface-card: #12121B;
+  --color-surface-elevated: #171722;
+
+  /* ── Text Hierarchy ── */
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #A8A8B8;
+  --color-text-muted: #71717F;
+  --color-text-disabled: rgba(168, 168, 184, 0.55);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 75% 5%, rgba(139, 92, 246, 0.07), transparent 30%),
+              radial-gradient(circle at 15% 90%, rgba(34, 211, 238, 0.04), transparent 25%),
+              #08080D;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+/* ── Premium Dark Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0E0E16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.22);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.55);
+}
+
+/* ── Glass Panel Utility ── */
+.glass-panel {
+  background: rgba(16, 16, 24, 0.80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Fabric Canvas Adjustment ── */
+.canvas-container {
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  border-radius: 10px;
+  background-color: transparent;
+  transition: box-shadow 0.3s ease;
+}
+
+.canvas-container:hover {
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
+.teckstudio-main-preview .canvas-container {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.teckstudio-main-preview .canvas-container:hover {
+  box-shadow: none;
+}
+
+.teckstudio-editor-shell {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(139, 92, 246, 0.08), transparent 28%),
+    radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.05), transparent 24%),
+    #08080D;
+}
+
+.teckstudio-panel-surface {
+  background: linear-gradient(180deg, rgba(18, 18, 27, 0.98), rgba(13, 13, 19, 0.98));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.teckstudio-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}

@@ -1,0 +1,385 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "lesson-video/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,80}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "audience": {
+      "enum": ["students", "graduates", "professionals"]
+    },
+    "locale": {
+      "const": "en"
+    },
+    "objectives": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "maxItems": 6,
+      "minItems": 1
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "maxItems": 8
+    },
+    "sourceNotes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+      },
+      "maxItems": 12
+    },
+    "template": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "const": "concept-walkthrough"
+        },
+        "version": {
+          "const": "1.0.0"
+        }
+      },
+      "required": ["id", "version"],
+      "additionalProperties": false
+    },
+    "theme": {
+      "const": "teckstudio-light"
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "const": "landscape-1080p"
+        },
+        "fps": {
+          "const": 30
+        }
+      },
+      "required": ["preset", "fps"],
+      "additionalProperties": false
+    },
+    "narration": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "const": "none"
+        }
+      },
+      "required": ["mode"],
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,80}$"
+              },
+              "type": {
+                "const": "title"
+              },
+              "durationFrames": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 3600
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 96
+              },
+              "subtitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              }
+            },
+            "required": ["id", "type", "durationFrames", "title", "subtitle"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,80}$"
+              },
+              "type": {
+                "const": "diagram"
+              },
+              "durationFrames": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 3600
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 96
+              },
+              "layout": {
+                "const": "left-to-right"
+              },
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32
+                    }
+                  },
+                  "required": ["id", "label"],
+                  "additionalProperties": false
+                },
+                "maxItems": 6,
+                "minItems": 1
+              },
+              "edges": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                    },
+                    "from": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                    },
+                    "to": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32
+                    }
+                  },
+                  "required": ["id", "from", "to", "label"],
+                  "additionalProperties": false
+                },
+                "maxItems": 10
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "atFrame": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 180
+                    },
+                    "activeNodeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                      },
+                      "maxItems": 6
+                    },
+                    "activeEdgeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                      },
+                      "maxItems": 10
+                    },
+                    "nodeStates": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,80}$"
+                      },
+                      "additionalProperties": {
+                        "enum": ["normal", "unavailable"]
+                      }
+                    }
+                  },
+                  "required": [
+                    "atFrame",
+                    "label",
+                    "activeNodeIds",
+                    "activeEdgeIds"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 12,
+                "minItems": 1
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "durationFrames",
+              "title",
+              "layout",
+              "nodes",
+              "edges",
+              "steps"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,80}$"
+              },
+              "type": {
+                "const": "question"
+              },
+              "durationFrames": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 3600
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "answer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 140
+              },
+              "explanation": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "revealAtFrame": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "durationFrames",
+              "prompt",
+              "answer",
+              "explanation",
+              "revealAtFrame"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,80}$"
+              },
+              "type": {
+                "const": "recap"
+              },
+              "durationFrames": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 3600
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 96
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "maxItems": 5,
+                "minItems": 1
+              },
+              "nextTask": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "durationFrames",
+              "title",
+              "points",
+              "nextTask"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "maxItems": 30,
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "title",
+    "domain",
+    "audience",
+    "locale",
+    "objectives",
+    "prerequisites",
+    "sourceNotes",
+    "template",
+    "theme",
+    "output",
+    "narration",
+    "assets",
+    "scenes"
+  ],
+  "additionalProperties": false
+}

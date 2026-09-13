@@ -1,0 +1,29 @@
+{
+  "name": "teckstudio",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "packages/*",
+    "renderer"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace frontend && tsc -p tsconfig.video.json",
+    "dev": "npm run dev --workspace frontend",
+    "video:prepare": "node --import tsx renderer/src/prepare.ts",
+    "video:render": "node --import tsx renderer/src/render-cli.ts",
+    "video:worker": "node --import tsx renderer/src/worker.ts",
+    "video:studio": "npm run studio --workspace @teckstudio/renderer",
+    "test:video": "node --import tsx --test packages/lesson-video/tests/*.test.ts renderer/src/*.test.ts",
+    "test:lesson-ui": "node scripts/test_lesson_ui.mjs --actual-player"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "~6.0.2",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "19.0.0",
+    "esbuild": "0.28.2"
+  }
+}
