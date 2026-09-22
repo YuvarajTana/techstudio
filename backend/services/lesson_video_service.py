@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import or_
 from config import settings, resolve_runtime_path
 from database import LessonVideoSnapshot, LessonVideoWorker, VideoRenderJob
-from services.lesson_spec import ROOT, compile_spec, spec_hash
+from services.lesson_spec import ROOT, compile_spec, spec_hash, captions_srt
 
 ARTIFACT_ROOT = resolve_runtime_path(settings.LESSON_VIDEO_ROOT)
 
@@ -65,7 +65,13 @@ def job_directory(job, attempt=None):
 
 
 def artifact_path(job, kind):
-    names = {"video": "video.mp4", "poster": "poster.png", "manifest": "manifest.json"}
+    names = {
+        "video": "video.mp4",
+        "poster": "poster.png",
+        "manifest": "manifest.json",
+        "captions": "captions.srt",
+        "transcript": "transcript.txt",
+    }
     if kind not in names or job.status != "completed" or not job.output_path:
         raise HTTPException(404, "Artifact is unavailable.")
     output = job_directory(job) / names[kind]
@@ -183,6 +189,7 @@ def claim_job(db):
         "lease_token": job.lease_token,
         "spec": snapshot.spec_json,
         "plan": snapshot.plan_json,
+        "asset_manifest": snapshot.asset_manifest_json or {},
         "bundle_id": snapshot.bundle_id,
         "output_directory": str(job_directory(job)),
         "timeout_seconds": settings.VIDEO_RENDER_TIMEOUT_SECONDS,
@@ -252,6 +259,47 @@ def verify_output(job, snapshot):
     )
     info = json.loads(result.stdout)
     video = next((s for s in info["streams"] if s["codec_type"] == "video"), {})
+    if snapshot.spec_json.get("schema") == "creative-video/v2":
+        requires_audio = bool(snapshot.spec_json.get("soundtrack")) or any(
+            (s.get("narration") or {}).get("assetId")
+            for s in snapshot.spec_json["scenes"]
+        )
+        if (
+            manifest.get("schema") != "creative-video-render/v2"
+            or manifest.get("hasAudio") != requires_audio
+            or manifest.get("assetHashes")
+            != {
+                alias: asset["sha256"]
+                for alias, asset in (snapshot.asset_manifest_json or {}).items()
+            }
+        ):
+            raise ValueError(
+                "Output assets or audio declaration differ from the frozen creative."
+            )
+        if any(
+            not (directory / name).is_file()
+            or not (directory / name).resolve().is_relative_to(directory.resolve())
+            for name in ("captions.srt", "transcript.txt")
+        ):
+            raise ValueError("Renderer did not produce the creative text artifacts.")
+        transcript = "\n\n".join(
+            (scene.get("narration") or {}).get("text", "")
+            for scene in snapshot.spec_json["scenes"]
+            if (scene.get("narration") or {}).get("text")
+        )
+        if (directory / "captions.srt").read_text() != captions_srt(
+            snapshot.spec_json
+        ) or (directory / "transcript.txt").read_text() != transcript:
+            raise ValueError(
+                "Rendered captions or transcript differ from the approved snapshot."
+            )
+        if requires_audio and not any(
+            s.get("codec_type") == "audio" and s.get("codec_name") == "aac"
+            for s in info["streams"]
+        ):
+            raise ValueError(
+                "Rendered video is missing the requested AAC audio stream."
+            )
     if (
         video.get("codec_name") != "h264"
         or video.get("width") != job.width

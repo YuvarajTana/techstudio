@@ -1,4 +1,6 @@
 import json
+import math
+import hashlib
 import secrets
 import uuid
 from datetime import datetime, timedelta
@@ -20,6 +22,7 @@ from database import (
 )
 from services.lesson_spec import ROOT, validate_spec, compile_spec, spec_hash
 from services import lesson_video_service as service
+from services.creative_context import prepare_context
 
 router = APIRouter(tags=["lesson-video"])
 
@@ -30,11 +33,13 @@ class StrictModel(BaseModel):
 
 class CreateLesson(StrictModel):
     spec: dict[str, Any] | None = None
+    creative_context: dict[str, Any] | None = None
 
 
 class SaveLesson(StrictModel):
     expected_revision: int = Field(ge=1, strict=True)
     spec: dict[str, Any]
+    creative_context: dict[str, Any] | None = None
 
 
 class SubmitLesson(StrictModel):
@@ -54,8 +59,8 @@ def owned_project(db, user, project_id, lock=False):
     query = db.query(Project).filter(
         Project.id == project_id, Project.user_id == user.id
     )
-    project = (query.with_for_update() if lock else query).first()
-    if not project or project.design_type != "lesson-video":
+    project = (query.with_for_update().populate_existing() if lock else query).first()
+    if not project or project.design_type not in {"lesson-video", "creative-video"}:
         raise HTTPException(404, "Lesson video not found.")
     return project
 
@@ -80,12 +85,46 @@ def document_response(project, doc):
         "name": project.name,
         "revision": doc.revision,
         "spec": doc.spec_json,
+        "schema_version": doc.schema_version,
+        "creative_context": project.creative_context_json,
     }
 
 
 @router.get("/api/health/lesson-video")
 def health(db: Session = Depends(get_db)):
     return service.worker_health(db)
+
+
+def validate_media(db, user_id, spec):
+    if spec["schema"] != "creative-video/v2":
+        return
+    from services.creative_media_service import resolve_owned_asset
+
+    assets = {}
+    for asset in spec["assets"]:
+        _record, _path, metadata = resolve_owned_asset(
+            db, user_id, asset["source"], asset["assetId"]
+        )
+        if metadata.get("kind") != asset["kind"]:
+            raise HTTPException(422, "Asset kind does not match the uploaded media.")
+        assets[asset["id"]] = metadata
+    for scene in spec["scenes"]:
+        narration = scene.get("narration") or {}
+        if not narration.get("assetId"):
+            continue
+        metadata = assets[narration["assetId"]]
+        actual_frames = math.ceil(metadata["duration_ms"] * 30 / 1000)
+        if narration["durationFrames"] != actual_frames:
+            raise HTTPException(422, "Narration duration must match the audio asset.")
+        if (
+            metadata.get("scriptHash")
+            and metadata["scriptHash"]
+            != hashlib.sha256(narration["text"].encode()).hexdigest()
+        ):
+            raise HTTPException(
+                422,
+                "Narration text changed. Regenerate speech and review it before rendering.",
+            )
 
 
 @router.post("/api/lesson-videos", status_code=201)
@@ -99,6 +138,8 @@ def create(
         if req.spec is not None
         else json.loads((ROOT / "packages/lesson-video/src/example.json").read_text())
     )
+    if spec["schema"] != "lesson-video/v1":
+        raise HTTPException(422, "Create this video through /api/creative-videos.")
     project = Project(
         id=str(uuid.uuid4()),
         user_id=user.id,
@@ -107,6 +148,7 @@ def create(
         width=1920,
         height=1080,
         background_color="#f7f6f1",
+        creative_context_json=prepare_context(db, user.id, req.creative_context),
     )
     db.add(project)
     db.flush()
@@ -118,7 +160,43 @@ def create(
     return document_response(project, doc)
 
 
+@router.post("/api/creative-videos", status_code=201)
+def create_creative(
+    req: CreateLesson,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    spec = validated(req.spec)
+    if spec["schema"] != "creative-video/v2":
+        raise HTTPException(422, "A creative-video/v2 spec is required.")
+    validate_media(db, user.id, spec)
+    plan = compile_spec(spec)
+    project = Project(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        name=spec["title"],
+        design_type="creative-video",
+        width=plan["width"],
+        height=plan["height"],
+        revision=1,
+        creative_context_json=prepare_context(db, user.id, req.creative_context),
+    )
+    db.add(project)
+    db.flush()
+    doc = LessonVideoDocument(
+        id=str(uuid.uuid4()),
+        project_id=project.id,
+        schema_version=spec["schema"],
+        spec_json=spec,
+        revision=1,
+    )
+    db.add(doc)
+    db.commit()
+    return document_response(project, doc)
+
+
 @router.get("/api/projects/{project_id}/lesson-video")
+@router.get("/api/projects/{project_id}/creative-video")
 def read(
     project_id: str,
     user: User = Depends(get_current_user),
@@ -129,6 +207,7 @@ def read(
 
 
 @router.put("/api/projects/{project_id}/lesson-video")
+@router.put("/api/projects/{project_id}/creative-video")
 def save(
     project_id: str,
     req: SaveLesson,
@@ -143,9 +222,19 @@ def save(
             409,
             "This lesson changed in another session. Export your local draft, then reload the saved version.",
         )
+    if doc.schema_version != spec["schema"]:
+        raise HTTPException(422, "Save using this document's schema version.")
+    validate_media(db, user.id, spec)
     doc.spec_json = spec
     doc.revision += 1
+    project.revision = doc.revision
+    if req.creative_context is not None:
+        project.creative_context_json = prepare_context(
+            db, user.id, req.creative_context, project.creative_context_json
+        )
     project.name = spec["title"]
+    plan = compile_spec(spec)
+    project.width, project.height = plan["width"], plan["height"]
     project.updated_at = datetime.utcnow()
     db.commit()
     return document_response(project, doc)
@@ -188,6 +277,16 @@ def submit(
             409, "Save or reload the latest lesson revision before rendering."
         )
     spec = validated(doc.spec_json)
+    if spec["schema"] == "creative-video/v2" and any(
+        (scene.get("narration") or {}).get("text", "").strip()
+        and not (scene.get("narration") or {}).get("assetId")
+        for scene in spec["scenes"]
+    ):
+        raise HTTPException(
+            422,
+            "Generate or upload narration audio and review it, or clear the narration text for a silent video.",
+        )
+    validate_media(db, user.id, spec)
     plan = compile_spec(spec)
     runtime = service.runtime_info()
     snapshot = LessonVideoSnapshot(
@@ -199,6 +298,12 @@ def submit(
         spec_hash=spec_hash(spec),
         bundle_id=runtime["bundleId"],
     )
+    if spec["schema"] == "creative-video/v2":
+        from services.creative_media_service import freeze_asset_manifest
+
+        snapshot.asset_manifest_json = freeze_asset_manifest(
+            db, user.id, spec, snapshot.id
+        )
     db.add(snapshot)
     db.flush()
     job = VideoRenderJob(
@@ -209,8 +314,8 @@ def submit(
         status="queued",
         stage="Waiting for local renderer",
         progress=0,
-        width=1920,
-        height=1080,
+        width=plan["width"],
+        height=plan["height"],
         fps=30,
         quality="standard",
         render_mode="remotion",
@@ -280,6 +385,8 @@ def artifact(
             "poster": "image/png",
             "manifest": "application/json",
             "video": "video/mp4",
+            "captions": "application/x-subrip",
+            "transcript": "text/plain",
         }[kind],
     )
 

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import {enqueueProjectSave, primeProjectSave} from '../services/projectSaveQueue';
 import { fabric } from 'fabric';
 import { apiFetch, getAuthToken } from '../services/apiClient';
 import { DESIGN_HEIGHT, DESIGN_WIDTH } from '../config/design';
@@ -82,6 +83,8 @@ const resolveBlankCanvasBackground = (background?: string | null) => {
 };
 
 type ProjectCanvasPayload = {
+  revision?: number;
+  creative_context?: Record<string, unknown> | null;
   id?: string;
   name?: string;
   data?: string | null;
@@ -562,6 +565,9 @@ interface EditorState {
   projectName: string;
   projectCreatedAt: string;
   projectUpdatedAt: string;
+  projectRevision: number;
+  creativeContext: Record<string, unknown> | null;
+  projectSaveError: string;
   isProjectLoading: boolean;
   isHydratingProject: boolean;
   projectLoadError: string;
@@ -724,6 +730,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   projectName: '',
   projectCreatedAt: '',
   projectUpdatedAt: '',
+  projectRevision: 1,
+  creativeContext: null,
+  projectSaveError: '',
   isProjectLoading: false,
   isHydratingProject: false,
   projectLoadError: '',
@@ -1091,15 +1100,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!token) return;
 
     try {
-      await apiFetch(`/api/projects/${projectId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: safeProjectName })
-      });
+      const result = await enqueueProjectSave(projectId, {name: safeProjectName});
+      if (get().projectId === projectId) set({projectRevision: result.revision, projectSaveError: ''});
     } catch (err) {
-      console.error('Error renaming project on backend:', err);
+      if (get().projectId === projectId) set({projectSaveError: err instanceof Error ? err.message : 'Unable to save project name.'});
     }
   },
 
@@ -1123,13 +1127,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const token = getAuthToken();
     if (!token) return;
 
-    apiFetch(`/api/projects/${projectId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name: safeProjectName })
-    }).catch(() => {});
+    enqueueProjectSave(projectId, {name: safeProjectName}).then(result => {
+      if (get().projectId === projectId) set({projectRevision: result.revision, projectSaveError: ''});
+    }).catch(error => {if (get().projectId === projectId) set({projectSaveError: error instanceof Error ? error.message : 'Unable to save project.'});});
   },
 
   loadProject: async (projectId) => {
@@ -1161,7 +1161,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     const finishLoad = async (project: ProjectCanvasPayload & { name?: string; createdAt?: string; updatedAt?: string }) => {
       const canvas = get().canvas;
+      primeProjectSave(projectId, project.revision || 1);
       set({
+        projectRevision: project.revision || 1,
+        creativeContext: project.creative_context || null,
+        projectSaveError: '',
         projectName: project.name || 'Untitled Design',
         projectCreatedAt: project.createdAt || '',
         projectUpdatedAt: project.updatedAt || '',
@@ -2254,29 +2258,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (!token) return;
 
       try {
-        const response = await apiFetch(`/api/projects/${projectId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: safeProjectName,
-            data: json,
-            width: canvas.getWidth(),
-            height: canvas.getHeight(),
-            background_color:
-              typeof canvas.backgroundColor === 'string' && canvas.backgroundColor
-                ? canvas.backgroundColor
-                : DEFAULT_CANVAS_BACKGROUND,
-          })
+        const project = await enqueueProjectSave(projectId, {
+          name: safeProjectName,
+          data: json,
+          width: canvas.getWidth(),
+          height: canvas.getHeight(),
+          background_color: typeof canvas.backgroundColor === 'string' && canvas.backgroundColor ? canvas.backgroundColor : DEFAULT_CANVAS_BACKGROUND,
         });
-        const data = await response.json();
-        const project = data.project || data;
-        if (response.ok && project?.updatedAt) {
-          set({ projectUpdatedAt: project.updatedAt });
-        }
+        if (get().projectId === projectId) set({projectUpdatedAt: project.updatedAt || '', projectRevision: project.revision, projectSaveError: ''});
       } catch (err) {
-        console.error('Error saving history on backend:', err);
+        if (get().projectId === projectId) set({projectSaveError: err instanceof Error ? err.message : 'Unable to save. Export your local draft before reloading.'});
       }
     }
   },

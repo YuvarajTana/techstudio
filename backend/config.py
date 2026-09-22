@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     AI_IMAGE_MAX_RETRIES: int = 2
     ENABLE_POLLINATIONS_FALLBACK: bool = True
     ENABLE_FAKE_AI_FALLBACK: bool = False
+    LOCAL_GENERATION_LEASE_SECONDS: int = 60
+    LOCAL_GENERATION_MAX_ATTEMPTS: int = 2
+    LOCAL_GENERATION_TIMEOUT_SECONDS: int = 1800
 
     # Runtime media storage
     MEDIA_ROOT: str = str(BACKEND_DIR / "media")

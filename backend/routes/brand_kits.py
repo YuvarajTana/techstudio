@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from copy import deepcopy
 import random
 import re
 import string
@@ -8,7 +9,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -86,12 +87,38 @@ def _validate_logo_data(file_data: str, file_type: Optional[str]) -> tuple[str, 
 
 
 # ─── Request / Response Models ────────────────────────────────────────────────
+class BrandProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tagline: str = Field(default="", max_length=250)
+    phone: str = Field(default="", max_length=80)
+    email: str = Field(default="", max_length=254)
+    locations: list[str] = Field(default_factory=list, max_length=12)
+    social: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("locations")
+    @classmethod
+    def check_locations(cls, value):
+        if any(len(location) > 200 for location in value):
+            raise ValueError("Locations must be 200 characters or less.")
+        return value
+
+    @field_validator("social")
+    @classmethod
+    def check_social(cls, value):
+        if len(value) > 10 or any(len(key) > 40 or len(url) > 2048 for key, url in value.items()):
+            raise ValueError("Provide up to ten short social links.")
+        if any(not url.startswith(("https://", "http://")) for url in value.values()):
+            raise ValueError("Social links must start with https:// or http://.")
+        return value
+
+
 class BrandKitCreate(BaseModel):
     name: str
     company_name: Optional[str] = None
     description: Optional[str] = None
     industry: Optional[str] = None
     website: Optional[str] = None
+    profile_json: BrandProfile = Field(default_factory=BrandProfile)
 
     @field_validator("name")
     @classmethod
@@ -125,6 +152,8 @@ class BrandKitUpdate(BaseModel):
     description: Optional[str] = None
     industry: Optional[str] = None
     website: Optional[str] = None
+    profile_json: BrandProfile | None = None
+    expected_revision: int | None = Field(default=None, ge=1, strict=True)
 
     @field_validator("name")
     @classmethod
@@ -364,6 +393,8 @@ class BrandKitResponse(BaseModel):
     description: Optional[str] = None
     industry: Optional[str] = None
     website: Optional[str] = None
+    profile_json: dict = Field(default_factory=dict)
+    revision: int = 1
     colors: List[ColorResponse]
     fonts: List[FontResponse]
     logos: List[LogoResponse]
@@ -404,6 +435,7 @@ def create_brand_kit(
         description=req.description,
         industry=req.industry,
         website=req.website,
+        profile_json=req.profile_json.model_dump(),
         user_id=current_user.id,
     )
     try:
@@ -434,6 +466,9 @@ def update_brand_kit(
 ):
     kit = _get_user_kit(kit_id, current_user.id, db)
     update_data = req.model_dump(exclude_unset=True)
+    expected_revision = update_data.pop("expected_revision", None)
+    if expected_revision is not None and expected_revision != kit.revision:
+        raise HTTPException(409, "Brand kit changed. Reload before saving.")
     if "name" in update_data and update_data["name"]:
         _ensure_unique_kit_name(update_data["name"], current_user.id, db, exclude_kit_id=kit.id)
     for field, value in update_data.items():
@@ -459,6 +494,7 @@ def duplicate_brand_kit(
         description=kit.description,
         industry=kit.industry,
         website=kit.website,
+        profile_json=deepcopy(kit.profile_json or {}),
         user_id=current_user.id,
     )
     db.add(copy)
@@ -722,6 +758,7 @@ def delete_logo(
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 def _touch(kit: BrandKit) -> None:
     kit.updated_at = datetime.utcnow()
+    kit.revision = (kit.revision or 1) + 1
 
 
 def _ensure_unique_kit_name(name: str, user_id: str, db: Session, exclude_kit_id: Optional[str] = None) -> None:
@@ -744,7 +781,7 @@ def _unique_copy_name(name: str, user_id: str, db: Session) -> str:
 
 
 def _get_user_kit(kit_id: str, user_id: str, db: Session) -> BrandKit:
-    kit = db.query(BrandKit).filter(BrandKit.id == kit_id, BrandKit.user_id == user_id).first()
+    kit = db.query(BrandKit).filter(BrandKit.id == kit_id, BrandKit.user_id == user_id).with_for_update().populate_existing().first()
     if not kit:
         raise HTTPException(status_code=404, detail="Brand kit not found")
     return kit
@@ -825,6 +862,8 @@ def _kit_to_response(kit: BrandKit, db: Session) -> BrandKitResponse:
         description=kit.description,
         industry=kit.industry,
         website=kit.website,
+        profile_json=kit.profile_json or {},
+        revision=kit.revision or 1,
         colors=[_color_response(color) for color in colors],
         fonts=[_font_response(font) for font in fonts],
         logos=[_logo_response(logo) for logo in logos],

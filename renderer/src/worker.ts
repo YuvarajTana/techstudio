@@ -3,6 +3,7 @@ import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
+import { claimResource } from "./resource-lease.ts";
 import {
   prepareRuntime,
   ROOT,
@@ -75,7 +76,10 @@ interface Job {
   output_directory: string;
   timeout_seconds: number;
 }
-async function runJob(job: Job) {
+async function runJob(
+  job: Job,
+  resource: Awaited<ReturnType<typeof claimResource>>,
+) {
   const input = path.join(
     RUNTIME,
     `video-input-${job.job_id}-${job.attempt}.json`,
@@ -135,6 +139,7 @@ async function runJob(job: Job) {
     pulseRunning = (async () => {
       try {
         await heartbeat();
+        await resource.renew();
         await request(`/jobs/${job.job_id}/progress`, payload());
       } catch {
         lostLease = true;
@@ -207,9 +212,14 @@ try {
   while (!stopping) {
     try {
       await heartbeat();
-      const { job } = await request("/claim");
-      if (job) await runJob(job);
-      else await sleep(2000);
+      const resource = await claimResource();
+      try {
+        const { job } = await request("/claim");
+        if (job) await runJob(job, resource);
+      } finally {
+        await resource.release().catch(() => {});
+      }
+      if (!stopping) await sleep(2000);
     } catch (error) {
       if (!stopping) {
         console.error(

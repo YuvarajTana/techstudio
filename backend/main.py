@@ -11,6 +11,7 @@ from migrate import run_migrations
 from routes import auth, projects, templates, categories, brand_kits, shared, favorites, assets, ai, ai_poster, stickers, fonts, images, poster_analysis, uploads, qrcode, charts, notifications, content_calendar, audit_logs, feature_flags, elements, video_render, provider_assets
 from config import resolve_runtime_path, settings, validate_security_settings
 from routes import lesson_video
+from routes import creative_jobs, creative_catalog, creative_media
 
 app = FastAPI(
     title="TECKSTUDIO API",
@@ -66,6 +67,10 @@ app.include_router(video_render.router)
 app.include_router(provider_assets.router)
 app.include_router(lesson_video.router)
 app.include_router(lesson_video.internal)
+app.include_router(creative_jobs.router)
+app.include_router(creative_jobs.internal)
+app.include_router(creative_catalog.router)
+app.include_router(creative_media.router)
 
 
 
@@ -81,6 +86,12 @@ def startup():
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "TECKSTUDIO API"}
+
+
+@app.get("/api/health/local-generation")
+def local_generation_health():
+    from services.local_generation import worker_health
+    return worker_health()
 
 
 @app.get("/api/health/database")

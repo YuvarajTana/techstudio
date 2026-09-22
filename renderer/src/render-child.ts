@@ -15,6 +15,7 @@ try {
     runtime,
     (p) => process.stdout.write(JSON.stringify(p) + "\n"),
     controller.signal,
+    job.asset_manifest,
   );
   if (!isDeepStrictEqual(manifest.plan, job.plan))
     throw new Error("Saved timeline differs from the renderer timeline.");

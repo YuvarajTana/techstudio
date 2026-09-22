@@ -4,7 +4,7 @@ The complete local stack is **browser → React/Vite → FastAPI → MySQL**, wi
 
 ## Recommended path on this Mac
 
-The supplied machine has Node **24.19.0**, npm **11.17.0**, Homebrew Python **3.12**, MySQL **9.3.0**, and FFmpeg **9.0.1**. `/usr/bin/python3` is **3.9.6**, which is too old for this source. Use the project's `.venv` or explicitly select Homebrew Python.
+The supplied machine has Node **24.19.0**, npm **11.17.0**, Homebrew Python **3.12**, and FFmpeg **9.0.1**. Homebrew `mysql` may now be **26.x**; an existing `.local/mysql` created with **9.3.0** cannot be opened by that binary. The launcher prefers a matching server such as `/usr/local/mysql/bin/mysqld`, or `TECKSTUDIO_MYSQLD`. `/usr/bin/python3` is **3.9.6**, which is too old for this source. Use the project's `.venv` or explicitly select Homebrew Python.
 
 For another Mac, install prerequisites first:
 
@@ -163,6 +163,7 @@ The Python lock file captures the packages used for this local verification. It 
 | Python syntax/import errors with `python3` | Use `.venv/bin/python`; system Python is 3.9 on this Mac |
 | Missing `JWT_SECRET` | Set a random secret in `backend/.env` |
 | Database connection refused | Start MySQL; match DB port 3307 for managed launcher, 3306 typically for manual |
+| `A service exited while waiting for mysql` / `Invalid MySQL server upgrade` | PATH `mysqld` is a newer lineage than `.local/mysql` (for example Homebrew 26.x vs datadir 9.3). Do **not** delete `.local/mysql`. Restart the launcher; it now selects a matching binary. Override with `TECKSTUDIO_MYSQLD=/usr/local/mysql/bin/mysqld` if needed |
 | Port occupied | Inspect `lsof -nP -iTCP:5173 -sTCP:LISTEN` (or 5001/3307). Stop the process you own; launcher never kills unknown services |
 | Backend fails during seeding/migration | Read `.local/backend-process.log`; preserve the DB and inspect the first error |
 | Login account not found | Register in this local database; hosted accounts are separate |

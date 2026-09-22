@@ -17,6 +17,9 @@ import { ContextMenu } from './components/editor/ContextMenu';
 import { ColorPaletteGenerator } from './components/editor/ColorPaletteGenerator';
 import { TextStylesPanel } from './components/editor/TextStylesPanel';
 import { EnhancedExportPanel } from './components/editor/EnhancedExportPanel';
+import PrintExport from './features/creative/PrintExport';
+import CreativePosterPanel from './features/creative/CreativePosterPanel';
+import {CUSTOM_FABRIC_PROPERTIES} from './utils/editorElementFactory';
 import { SaveAsTemplate } from './components/editor/SaveAsTemplate';
 import { BackgroundPatterns } from './components/editor/BackgroundPatterns';
 import { TimelinePanel } from './components/editor/TimelinePanel';
@@ -33,6 +36,8 @@ const App: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const setProjectId = useEditorStore((state) => state.setProjectId);
   const selectedObject = useEditorStore((state) => state.selectedObject);
+  const saveError = useEditorStore((state) => state.projectSaveError);
+  const creativeContext = useEditorStore((state) => state.creativeContext);
   const [rightPanel, setRightPanel] = useState<RightPanel>('ai');
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -113,6 +118,7 @@ const App: React.FC = () => {
 
         {/* Center: Interactive design canvas */}
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {saveError && <div role="alert" className="border-b border-amber-700 bg-amber-950 p-3 text-sm text-amber-100">{saveError} Your local canvas is preserved. <button className="ml-3 underline" onClick={() => {const state=useEditorStore.getState();const data=state.history[state.historyIndex] || JSON.stringify(state.canvas?.toJSON(CUSTOM_FABRIC_PROPERTIES));const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='local-poster-draft.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}>Export local JSON</button><button className="ml-3 underline" onClick={() => window.location.reload()}>Reload saved version</button></div>}
           <CanvasWorkspace />
           {/* Floating selection toolbar — appears above selected elements */}
           <ElementToolbar />
@@ -172,7 +178,7 @@ const App: React.FC = () => {
           {!rightPanelCollapsed && <div className="flex-1 min-h-0 overflow-hidden">
             {rightPanel === 'ai' && (
               <div className="teckstudio-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain p-3 pb-24">
-                <AIAssistant />
+                {creativeContext ? <CreativePosterPanel /> : <AIAssistant />}
               </div>
             )}
             {rightPanel === 'colors' && (
@@ -214,6 +220,7 @@ const App: React.FC = () => {
             )}
             {rightPanel === 'export' && (
               <div className="teckstudio-scrollbar h-full overflow-y-auto">
+                <PrintExport />
                 <EnhancedExportPanel />
               </div>
             )}

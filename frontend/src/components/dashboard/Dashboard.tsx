@@ -10,6 +10,7 @@ import {
   Plus,
   Star,
   MonitorPlay,
+  Film,
   FileText,
   Image,
   Palette,
@@ -208,6 +209,7 @@ export const Dashboard: React.FC = () => {
   const [showCreateDesignModal, setShowCreateDesignModal] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [customDesignSize, setCustomDesignSize] = useState({ width: 800, height: 800 });
+  const [creatingLessonVideo, setCreatingLessonVideo] = useState(false);
 
   // Get user profile info
   const storedUser = localStorage.getItem('teckstudio_user');
@@ -472,12 +474,25 @@ export const Dashboard: React.FC = () => {
   };
 
   const createLessonVideo = async () => {
+    if (creatingLessonVideo) return;
+    setCreatingLessonVideo(true);
     try {
       const response = await apiFetch('/api/lesson-videos', {method: 'POST', body: '{}'});
       const result = await response.json();
       if (!response.ok) throw new Error(result.detail || 'Unable to create lesson video.');
       navigate(`/lesson-video/${result.project_id}`);
-    } catch (error) {showNotification(error instanceof Error ? error.message : 'Unable to create lesson.', 'error');}
+    } catch (error) {
+      showNotification(error instanceof Error ? error.message : 'Unable to create lesson.', 'error');
+    } finally {
+      setCreatingLessonVideo(false);
+    }
+  };
+
+  const projectTypeLabel = (project: Pick<ProjectMeta, 'id' | 'design_type'>) => {
+    if (project.design_type === 'creative-video') return 'Creative Video';
+    if (project.design_type === 'creative-poster') return 'Creative Poster';
+    if (project.design_type === 'lesson-video') return 'Lesson Video';
+    return project.id.startsWith('local_') ? 'Local Design' : 'Cloud Design';
   };
 
   const openCreateDesignFlow = () => {
@@ -503,7 +518,7 @@ export const Dashboard: React.FC = () => {
 
   const handleOpenDesign = (id: string) => {
     const project = savedDesigns.find(item => item.id === id);
-    navigate(project?.design_type === 'lesson-video' ? `/lesson-video/${id}` : `/editor/${id}`);
+    navigate(project?.design_type === 'creative-video' ? `/video/${id}` : project?.design_type === 'lesson-video' ? `/lesson-video/${id}` : `/editor/${id}`);
   };
 
   const handleDeleteDesign = async (id: string) => {
@@ -660,14 +675,34 @@ export const Dashboard: React.FC = () => {
             <div className="min-w-0">
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#C4B5FD]">TechPoster Studio</p>
               <h1 className="max-w-3xl text-3xl font-bold tracking-tight text-[#F8FAFC] sm:text-4xl lg:text-5xl">Welcome back, {user.name || 'Sandhya'}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#A8A8B8] sm:text-base">Create, edit, and manage professional posters with AI. Start from a preset, generate with a prompt, or continue an existing design.</p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#A8A8B8] sm:text-base">Create posters in the canvas editor, or start a Lesson Video — a silent 1080p MP4 rendered from scenes, not from a canvas export.</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <button type="button" onClick={() => handleCreateDesign('New Poster', 800, 1132)} className="flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400/50" style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 50%, #A855F7 100%)', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.25)' }}>Create New Poster</button>
-              <button type="button" onClick={() => { activateHomeAiTool('poster'); focusHomeAiComposer(); }} className="flex h-11 items-center justify-center rounded-xl border border-[rgba(196,181,253,0.18)] bg-[#171720] px-4 text-sm font-semibold text-[#F8FAFC] transition-all hover:border-[rgba(168,85,247,0.60)] hover:bg-[#1C1C2A] focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer">Generate with AI</button>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <button type="button" onClick={createLessonVideo} disabled={creatingLessonVideo} className="flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 50%, #A855F7 100%)', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.25)' }}>{creatingLessonVideo ? 'Creating lesson…' : 'Create Lesson Video'}</button>
+              <button type="button" onClick={() => handleCreateDesign('New Poster', 800, 1132)} className="flex h-11 items-center justify-center rounded-xl border border-[rgba(196,181,253,0.18)] bg-[#171720] px-4 text-sm font-semibold text-[#F8FAFC] transition-all hover:border-[rgba(168,85,247,0.60)] hover:bg-[#1C1C2A] focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer">Create New Poster</button>
+              <button type="button" onClick={() => { activateHomeAiTool('poster'); focusHomeAiComposer(); }} className="flex h-11 items-center justify-center rounded-xl border border-white/[0.10] bg-[#0E0E16] px-4 text-sm font-semibold text-[#A8A8B8] transition-all hover:border-white/[0.18] hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer">Generate with AI</button>
               <button type="button" onClick={() => setActivePage('templates')} className="flex h-11 items-center justify-center rounded-xl border border-white/[0.10] bg-[#0E0E16] px-4 text-sm font-semibold text-[#A8A8B8] transition-all hover:border-white/[0.18] hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer">Browse Templates</button>
             </div>
           </div>
+        </section>
+
+        <section>
+          <SectionHeader title="Lesson Video" description="The programmatic Remotion pipeline: edit scenes, preview, then render a silent landscape 1080p MP4. This is not canvas poster export." />
+          <article className="overflow-hidden rounded-2xl border border-[rgba(139,92,246,0.40)] p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, rgba(22,22,38,0.98), rgba(18,18,27,0.98))' }}>
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="flex min-w-0 items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={{ background: 'rgba(139, 92, 246, 0.14)', border: '1px solid rgba(168, 85, 247, 0.30)' }}>
+                  <Film className="h-6 w-6 text-[#C4B5FD]" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-[#F8FAFC]">Start a Lesson Video</h3>
+                  <p className="mt-1 text-sm leading-6 text-[#A8A8B8]">Opens the Lesson Video workspace with the API-request starter. Edit scenes, scrub the preview, save, and render locally. Canvas export stays in the poster editor.</p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#C4B5FD]">Silent · 1920×1080 · MP4</p>
+                </div>
+              </div>
+              <button type="button" onClick={createLessonVideo} disabled={creatingLessonVideo} className="flex h-11 shrink-0 items-center justify-center rounded-xl px-6 text-sm font-semibold text-white transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 50%, #A855F7 100%)', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.25)' }}>{creatingLessonVideo ? 'Creating lesson…' : 'Create Lesson Video'}</button>
+            </div>
+          </article>
         </section>
 
         <section>
@@ -761,8 +796,15 @@ export const Dashboard: React.FC = () => {
         </section>
 
         <section>
-          <SectionHeader title="Quick Create" description="Start with a precise canvas size and open the editor immediately." />
-          <button type="button" onClick={createLessonVideo} className="mb-4 flex w-full items-center gap-4 rounded-2xl border border-violet-500/40 bg-violet-500/10 p-5 text-left text-white hover:bg-violet-500/20"><MonitorPlay className="h-8 w-8 text-violet-300" /><span><strong className="block text-base">Create Lesson Video</strong><span className="text-sm text-zinc-300">Edit a visual explanation, preview it, and render an MP4 locally.</span></span></button>
+          <SectionHeader title="Quick Create" description="Poster canvases open in the editor. Lesson Video is a separate workspace that renders a silent 1080p MP4." />
+          <button type="button" onClick={() => navigate('/create')} className="mb-4 flex w-full items-center gap-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-left text-white hover:bg-emerald-500/20"><Palette className="h-8 w-8 text-emerald-300"/><span><strong className="block text-base">Creative Studio</strong><span className="text-sm text-zinc-300">Branded posters, products and services, social formats and A4/A3 exports.</span></span></button>
+          <button type="button" onClick={createLessonVideo} disabled={creatingLessonVideo} className="mb-4 flex w-full items-center gap-4 rounded-2xl border border-violet-500/40 bg-violet-500/10 p-5 text-left text-white transition-all hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60">
+            <Film className="h-8 w-8 shrink-0 text-violet-300" />
+            <span>
+              <strong className="block text-base">{creatingLessonVideo ? 'Creating lesson…' : 'Create Lesson Video'}</strong>
+              <span className="text-sm text-zinc-300">Silent landscape 1080p MP4 via Remotion — not a canvas poster export.</span>
+            </span>
+          </button>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-8">
             {HOME_QUICK_CREATE_PRESETS.map((preset) => (
               <button key={preset.name} type="button" onClick={() => handleCreateDesign(preset.name, preset.width, preset.height)} className="group flex min-h-[132px] flex-col rounded-2xl border border-white/[0.10] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[rgba(139,92,246,0.50)] focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer" style={{ background: '#12121B' }}>
@@ -778,11 +820,11 @@ export const Dashboard: React.FC = () => {
         <section>
           <SectionHeader title="Recent Projects" description="Open your latest designs or create a new poster." action={<button type="button" onClick={() => setActivePage('projects')} className="text-sm font-semibold text-[#C4B5FD] hover:text-[#E9D5FF] transition-colors cursor-pointer">View All</button>} />
           {savedDesigns.length === 0 ? (
-            <EmptyState icon={FileText} title="No projects yet" description="Create your first poster or start with a template." action={<div className="flex flex-wrap justify-center gap-2"><button type="button" onClick={() => handleCreateDesign('New Poster', 800, 1132)} className="h-10 rounded-xl px-4 text-sm font-semibold text-white cursor-pointer" style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>Create Poster</button><button type="button" onClick={() => setActivePage('templates')} className="h-10 rounded-xl border border-white/[0.10] px-4 text-sm font-semibold text-[#F8FAFC] transition-all hover:border-[rgba(139,92,246,0.50)] cursor-pointer">Browse Templates</button></div>} />
+            <EmptyState icon={FileText} title="No projects yet" description="Create a Lesson Video, start a poster, or pick a template." action={<div className="flex flex-wrap justify-center gap-2"><button type="button" onClick={createLessonVideo} disabled={creatingLessonVideo} className="h-10 rounded-xl px-4 text-sm font-semibold text-white cursor-pointer disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>{creatingLessonVideo ? 'Creating lesson…' : 'Create Lesson Video'}</button><button type="button" onClick={() => handleCreateDesign('New Poster', 800, 1132)} className="h-10 rounded-xl border border-white/[0.10] px-4 text-sm font-semibold text-[#F8FAFC] transition-all hover:border-[rgba(139,92,246,0.50)] cursor-pointer">Create Poster</button><button type="button" onClick={() => setActivePage('templates')} className="h-10 rounded-xl border border-white/[0.10] px-4 text-sm font-semibold text-[#F8FAFC] transition-all hover:border-[rgba(139,92,246,0.50)] cursor-pointer">Browse Templates</button></div>} />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {visibleProjects.map((project) => (
-                <DesignCard key={project.id} design={{ id: project.id, name: project.name, type: project.id.startsWith('local_') ? 'Local Design' : 'Cloud Design', editedAt: formatRelativeDate(project.updatedAt), gradient: project.id.startsWith('local_') ? 'from-cyan-500/30 to-blue-500/30' : 'from-violet-500/30 to-fuchsia-500/30', thumbnail: project.thumbnail, width: project.width, height: project.height }} />
+                <DesignCard key={project.id} design={{ id: project.id, name: project.name, type: projectTypeLabel(project), editedAt: formatRelativeDate(project.updatedAt), gradient: project.design_type === 'lesson-video' ? 'from-fuchsia-500/30 to-violet-500/30' : project.id.startsWith('local_') ? 'from-cyan-500/30 to-blue-500/30' : 'from-violet-500/30 to-fuchsia-500/30', thumbnail: project.thumbnail, width: project.width, height: project.height }} />
               ))}
             </div>
           )}
@@ -899,9 +941,9 @@ export const Dashboard: React.FC = () => {
                 design={{
                   id: project.id,
                   name: project.name,
-                  type: project.id.startsWith('local_') ? 'Local Design' : 'Cloud Design',
+                  type: projectTypeLabel(project),
                   editedAt: formatRelativeDate(project.updatedAt),
-                  gradient: project.id.startsWith('local_') ? 'from-cyan-500/30 to-blue-500/30' : 'from-violet-500/30 to-fuchsia-500/30',
+                  gradient: project.design_type === 'lesson-video' ? 'from-fuchsia-500/30 to-violet-500/30' : project.id.startsWith('local_') ? 'from-cyan-500/30 to-blue-500/30' : 'from-violet-500/30 to-fuchsia-500/30',
                 }}
               />
             ))}
@@ -1652,7 +1694,7 @@ export const Dashboard: React.FC = () => {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-[#F8FAFC]">Create Design</h2>
-                <p className="mt-1 text-sm text-[#A8A8B8]">Choose a preset or enter a custom canvas size.</p>
+                <p className="mt-1 text-sm text-[#A8A8B8]">Start a Lesson Video, or choose a poster canvas size.</p>
               </div>
               <button
                 type="button"
@@ -1663,6 +1705,22 @@ export const Dashboard: React.FC = () => {
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => { setShowCreateDesignModal(false); void createLessonVideo(); }}
+              disabled={creatingLessonVideo}
+              className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-[rgba(139,92,246,0.45)] bg-violet-500/10 p-4 text-left transition-all hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500">
+                <Film className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-[#F8FAFC]">{creatingLessonVideo ? 'Creating lesson…' : 'Create Lesson Video'}</h3>
+                <p className="text-xs text-[#C4B5FD]">Silent 1080p MP4 · Remotion workspace</p>
+                <p className="mt-0.5 text-[10px] text-[#A8A8B8]">Not a canvas poster export. Opens the Lesson Video workspace with starter scenes.</p>
+              </div>
+            </button>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {CREATE_DESIGN_PRESETS.map((preset) => (

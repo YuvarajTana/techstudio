@@ -5,7 +5,7 @@ AI Image-Based Poster Generator - Complete Pipeline
 Generates professional posters from text prompts with AI image generation.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from config import settings
@@ -35,7 +35,8 @@ except Exception:
     Image = ImageDraw = ImageFont = ImageOps = None
     HAS_PIL = False
 
-router = APIRouter(prefix="/api/ai-poster", tags=["ai-poster"])
+from services.ai_policy import legacy_ai_policy
+router = APIRouter(prefix="/api/ai-poster", tags=["ai-poster"], dependencies=[Depends(legacy_ai_policy)])
 
 # Cache
 _response_cache = {}
@@ -781,6 +782,8 @@ def generate_image_prompt(prompt: str, theme: dict) -> str:
 # ─── Image Generation ──────────────────────────────────────────
 
 def generate_image(prompt: str, width: int = 1024, height: int = 1024) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate an image using configured production providers only."""
     failures: list[dict] = []
     for provider in get_image_provider_order():
@@ -821,6 +824,8 @@ def generate_image(prompt: str, width: int = 1024, height: int = 1024) -> dict:
 
 
 def generate_image_openai(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using OpenAI API."""
     api_key = settings.OPENAI_API_KEY
     if not api_key:
@@ -870,6 +875,8 @@ def generate_image_openai(prompt: str, width: int, height: int) -> dict:
 
 
 def generate_image_gemini(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using Gemini image models when GEMINI_API_KEY is configured."""
     api_key = settings.GEMINI_API_KEY
     if not api_key:
@@ -920,6 +927,8 @@ def generate_image_gemini(prompt: str, width: int, height: int) -> dict:
 
 
 def generate_image_stability(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using Stability AI when STABILITY_API_KEY is configured."""
     api_key = getattr(settings, "STABILITY_API_KEY", "")
     if not api_key:
@@ -1220,6 +1229,8 @@ def generate_poster_artifact(
 
 
 def generate_image_pollinations(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using Pollinations AI API."""
     seed = random.randint(1, 999999)
     last_category = "invalid_response"

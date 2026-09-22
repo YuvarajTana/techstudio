@@ -14,7 +14,12 @@ import {
   makeCancelSignal,
 } from "@remotion/renderer";
 import { VERSION } from "remotion";
-import { parseLesson, compileLesson } from "@teckstudio/lesson-video";
+import {
+  parseVideo,
+  compileVideo,
+  captionsToSrt,
+} from "@teckstudio/lesson-video";
+import { serveAssets, type AssetManifest } from "./asset-server.ts";
 
 export const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -139,19 +144,38 @@ export async function renderLesson(
   runtime: RuntimeInfo,
   progress: (p: RenderProgress) => void = () => {},
   signal?: AbortSignal,
+  assetManifest: AssetManifest = {},
 ) {
-  const spec = parseLesson(value),
-    plan = compileLesson(spec),
-    inputProps = { spec };
+  const spec = parseVideo(value),
+    plan = compileVideo(spec);
+  if (spec.schema === "creative-video/v2") {
+    for (const scene of spec.scenes) {
+      const narration = scene.narration;
+      if (narration?.text.trim() && !narration.assetId)
+        throw new Error("Attach narration audio or clear the draft script before rendering.");
+      if (narration?.assetId) {
+        if (narration.approvedTextHash !== hash(narration.text))
+          throw new Error("Narration script changed. Regenerate or re-approve the audio before rendering.");
+        const media = assetManifest[narration.assetId];
+        if (!media) throw new Error("Narration snapshot is missing.");
+        const measured = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", media.path], {encoding:"utf8",timeout:30000}));
+        if (!Number.isFinite(measured) || measured <= 0 || Math.abs(Math.ceil(measured * 30) - narration.durationFrames!) > 1)
+          throw new Error("Narration duration differs from its measured audio. Resolve the scene timing again.");
+      }
+    }
+  }
   await fs.mkdir(directory, { recursive: true });
   const { cancelSignal, cancel } = makeCancelSignal();
   signal?.addEventListener("abort", cancel, { once: true });
   if (signal?.aborted) throw new Error("Render cancelled.");
-  const browser = await openBrowser("chrome", {
-    browserExecutable: runtime.browserExecutable,
-    logLevel: "error",
-  });
+  const assets = await serveAssets(spec, assetManifest);
+  const inputProps = { spec, assetSources: assets.sources };
+  let browser;
   try {
+    browser = await openBrowser("chrome", {
+      browserExecutable: runtime.browserExecutable,
+      logLevel: "error",
+    });
     const common = {
       serveUrl: runtime.serveUrl,
       inputProps,
@@ -202,10 +226,20 @@ export async function renderLesson(
       cancelSignal,
     });
     const manifest = {
-      schema: "lesson-video-render/v1",
+      schema:
+        spec.schema === "creative-video/v2"
+          ? "creative-video-render/v2"
+          : "lesson-video-render/v1",
       spec,
       plan,
-      template: spec.template,
+      ...(spec.schema === "lesson-video/v1"
+        ? { template: spec.template }
+        : {
+            assetHashes: assets.hashes,
+            hasAudio: !!(
+              spec.soundtrack || spec.scenes.some((s) => s.narration?.assetId)
+            ),
+          }),
       specHash: hash(JSON.stringify(spec)),
       bundleId: runtime.bundleId,
       remotionVersion: VERSION,
@@ -214,6 +248,19 @@ export async function renderLesson(
       videoSha256: hash(await fs.readFile(path.join(directory, "video.mp4"))),
       posterSha256: hash(await fs.readFile(path.join(directory, "poster.png"))),
     };
+    if (spec.schema === "creative-video/v2") {
+      await fs.writeFile(
+        path.join(directory, "captions.srt"),
+        captionsToSrt(spec),
+      );
+      await fs.writeFile(
+        path.join(directory, "transcript.txt"),
+        spec.scenes
+          .map((s) => s.narration?.text ?? "")
+          .filter(Boolean)
+          .join("\n\n"),
+      );
+    }
     await fs.writeFile(
       path.join(directory, "manifest.json"),
       JSON.stringify(manifest, null, 2),
@@ -221,6 +268,7 @@ export async function renderLesson(
     return manifest;
   } finally {
     signal?.removeEventListener("abort", cancel);
-    await browser.close({ silent: true });
+    await browser?.close({ silent: true });
+    await assets.close();
   }
 }

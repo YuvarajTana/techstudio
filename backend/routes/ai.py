@@ -29,7 +29,8 @@ import uuid
 from textwrap import wrap
 from datetime import datetime, timedelta
 
-router = APIRouter(prefix="/api/ai", tags=["ai"])
+from services.ai_policy import legacy_ai_policy
+router = APIRouter(prefix="/api/ai", tags=["ai"], dependencies=[Depends(legacy_ai_policy)])
 
 # Cache for Gemini responses (in-memory cache with TTL)
 _response_cache = {}
@@ -570,6 +571,8 @@ def get_last_gemini_error() -> str:
 
 
 def call_gemini_api(prompt: str, max_retries: int = 1, retry_delay: float = 1.0, model: str | None = None) -> str:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Call Google Gemini API to generate content with retry logic and caching."""
     model_name = model or get_chat_model("gemini") or "gemini-2.0-flash"
     cache_prompt = f"[model:{model_name}]\n{prompt}"
@@ -593,6 +596,8 @@ def call_gemini_api(prompt: str, max_retries: int = 1, retry_delay: float = 1.0,
 
 
 def call_gemini_api_urllib(prompt: str, model: str | None = None) -> str:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Fallback Gemini API call using urllib."""
     import urllib.request
     import urllib.error
@@ -680,6 +685,8 @@ Return a helpful answer to the current user question. If useful, include 2-4 sho
 
 
 def call_openai_chat_api(message: str, context: str, history: Optional[List[ChatHistoryItem]], model: str | None = None) -> str:
+    from services.ai_policy import require_cloud
+    require_cloud()
     api_key = settings.OPENAI_API_KEY
     if not api_key:
         return ""
@@ -718,6 +725,8 @@ def call_openai_chat_api(message: str, context: str, history: Optional[List[Chat
 
 
 def call_pollinations_chat_api(message: str, context: str, history: Optional[List[ChatHistoryItem]]) -> str:
+    from services.ai_policy import require_cloud
+    require_cloud()
     prompt = clean_chat_text(build_chat_prompt(message, context, history), 2800)
     url = f"https://text.pollinations.ai/{urllib.parse.quote(prompt)}"
     try:
@@ -1273,6 +1282,8 @@ def generate_image_url(prompt: str, width: int = 1024, height: int = 1024, seed:
 
 
 def generate_image_via_proxy(prompt: str, width: int = 1024, height: int = 1024) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate an image through configured production providers only."""
     import random
     seed = random.randint(1, 999999)
@@ -1344,6 +1355,8 @@ def pollinations_prompt_candidates(prompt: str) -> list[str]:
 
 
 def generate_image_pollinations(prompt: str, width: int, height: int, seed: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using Pollinations AI API."""
     last_category = "invalid_response"
     for attempt, pollinations_prompt in enumerate(pollinations_prompt_candidates(prompt), start=1):
@@ -1472,6 +1485,8 @@ def generate_local_placeholder_image(prompt: str, width: int, height: int, seed:
 
 
 def generate_image_openai(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using OpenAI API."""
     api_key = settings.OPENAI_API_KEY
     if not api_key:
@@ -1517,6 +1532,8 @@ def generate_image_openai(prompt: str, width: int, height: int) -> dict:
 
 
 def generate_image_gemini(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using Gemini image models when GEMINI_API_KEY is configured."""
     api_key = settings.GEMINI_API_KEY
     if not api_key:
@@ -1565,6 +1582,8 @@ def generate_image_gemini(prompt: str, width: int, height: int) -> dict:
 
 
 def generate_image_stability(prompt: str, width: int, height: int) -> dict:
+    from services.ai_policy import require_cloud
+    require_cloud()
     """Generate image using Stability AI when STABILITY_API_KEY is configured."""
     api_key = getattr(settings, "STABILITY_API_KEY", "")
     if not api_key:

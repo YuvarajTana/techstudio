@@ -19,12 +19,19 @@ import {
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-600.css";
 import "@fontsource/inter/latin-700.css";
+import {CreativeVideo} from "./CreativeVideo";
+import type {VideoSpec} from "@teckstudio/lesson-video";
+export {CreativeVideo};
+export type VideoProps = {spec:VideoSpec;assetSources?:Record<string,string>};
+export function VideoComposition({spec,assetSources}:VideoProps) {
+  return spec.schema === "creative-video/v2" ? <CreativeVideo spec={spec} assetSources={assetSources}/> : <LessonVideo spec={spec}/>;
+}
 
 export type LessonProps = { spec: LessonVideoSpec };
 const ink = "#1a2638",
   purple = "#6843bb",
   muted = "#5b6878";
-function useFonts() {
+export function useFonts() {
   const [handle] = useState(() => delayRender("Loading packaged Inter fonts"));
   useEffect(() => {
     Promise.all(

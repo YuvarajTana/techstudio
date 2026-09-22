@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Any, Optional, List
-from database import get_db, Project, User, DesignVersion, DeletedItem, LessonVideoDocument, LessonVideoSnapshot, VideoRenderJob
+from database import get_db, Project, User, DesignVersion, DeletedItem, LessonVideoDocument, LessonVideoSnapshot, VideoRenderJob, GenerationJob
+from services.creative_context import prepare_context
 from auth import get_current_user
 from datetime import datetime
 import random
@@ -13,6 +14,7 @@ AUTOSAVE_VERSION_COALESCE_SECONDS = 60
 
 
 class ProjectCreate(BaseModel):
+    creative_context: Optional[dict[str, Any]] = None
     id: Optional[str] = None
     name: str
     data: Optional[str] = None
@@ -26,6 +28,8 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
+    expected_revision: Optional[int] = Field(default=None, ge=1, strict=True)
+    creative_context: Optional[dict[str, Any]] = None
     name: Optional[str] = None
     data: Optional[str] = None
     width: Optional[int] = None
@@ -38,6 +42,8 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectResponse(BaseModel):
+    revision: int = 1
+    creative_context: Optional[dict[str, Any]] = None
     id: str
     name: str
     data: Optional[str]
@@ -57,6 +63,8 @@ class ProjectListResponse(BaseModel):
 
 
 class DeletedProjectResponse(BaseModel):
+    revision: int = 1
+    creative_context: Optional[dict[str, Any]] = None
     id: str
     item_id: str
     name: str
@@ -99,13 +107,15 @@ def persist_project_data_version(db: Session, project: Project, data: str, now: 
     project.data = data
     latest_version = db.query(DesignVersion).filter(
         DesignVersion.project_id == project.id
-    ).order_by(DesignVersion.version_number.desc()).first()
+    ).order_by(DesignVersion.version_number.desc()).with_for_update().populate_existing().first()
 
-    if latest_version and latest_version.data == data:
+    if latest_version and latest_version.data == data and latest_version.creative_context_json == project.creative_context_json:
         return
 
     if _should_coalesce_autosave(latest_version, now):
         latest_version.data = data
+        latest_version.creative_context_json = project.creative_context_json
+        latest_version.project_revision = project.revision
         latest_version.created_at = now
         return
 
@@ -115,6 +125,8 @@ def persist_project_data_version(db: Session, project: Project, data: str, now: 
         version_number=(latest_version.version_number + 1) if latest_version else 1,
         name="Autosave",
         data=data,
+        creative_context_json=project.creative_context_json,
+        project_revision=project.revision,
     ))
 
 
@@ -130,6 +142,8 @@ def to_project_response(project: Project) -> ProjectResponse:
         generated_asset_id=project.generated_asset_id,
         prompt=project.prompt,
         provider=project.provider,
+        revision=project.revision or 1,
+        creative_context=project.creative_context_json,
         createdAt=project.created_at.isoformat() if project.created_at else "",
         updatedAt=project.updated_at.isoformat() if project.updated_at else "",
     )
@@ -147,6 +161,8 @@ def deleted_project_metadata(project: Project) -> dict[str, Any]:
         "generated_asset_id": project.generated_asset_id,
         "prompt": project.prompt,
         "provider": project.provider,
+        "revision": project.revision or 1,
+        "creative_context": project.creative_context_json,
         "created_at": project.created_at.isoformat() if project.created_at else None,
         "updated_at": project.updated_at.isoformat() if project.updated_at else None,
     }
@@ -166,6 +182,8 @@ def to_deleted_project_response(item: DeletedItem) -> DeletedProjectResponse:
         generated_asset_id=metadata.get("generated_asset_id"),
         prompt=metadata.get("prompt"),
         provider=metadata.get("provider"),
+        revision=metadata.get("revision", 1),
+        creative_context=metadata.get("creative_context"),
         deletedAt=item.created_at.isoformat() if item.created_at else "",
     )
 
@@ -207,6 +225,8 @@ def create_project(
         generated_asset_id=req.generated_asset_id,
         prompt=req.prompt,
         provider=req.provider,
+        creative_context_json=prepare_context(db, current_user.id, req.creative_context),
+        revision=1,
     )
     db.add(project)
     if req.data:
@@ -216,6 +236,8 @@ def create_project(
             version_number=1,
             name="Initial version",
             data=req.data,
+            creative_context_json=project.creative_context_json,
+            project_revision=1,
         ))
     db.commit()
     db.refresh(project)
@@ -270,15 +292,17 @@ def restore_deleted_project(
         generated_asset_id=metadata.get("generated_asset_id"),
         prompt=metadata.get("prompt"),
         provider=metadata.get("provider"),
+        creative_context_json=metadata.get("creative_context"),
+        revision=metadata.get("revision", 1),
         updated_at=datetime.utcnow(),
     )
     db.add(project)
     db.flush()
-    if project.design_type == "lesson-video" and metadata.get("lesson_video"):
+    if project.design_type in {"lesson-video", "creative-video"} and metadata.get("lesson_video"):
         from services.lesson_spec import validate_spec
         import uuid
         lesson = metadata["lesson_video"]
-        db.add(LessonVideoDocument(id=str(uuid.uuid4()), project_id=project.id, spec_json=validate_spec(lesson["spec"]), revision=lesson.get("revision", 1)))
+        db.add(LessonVideoDocument(id=str(uuid.uuid4()), project_id=project.id, spec_json=validate_spec(lesson["spec"]), schema_version=lesson["spec"]["schema"], revision=lesson.get("revision", 1)))
     if project.data:
         db.add(DesignVersion(
             id=generate_version_id(),
@@ -287,6 +311,8 @@ def restore_deleted_project(
             name="Restored version",
             data=project.data,
             thumbnail=project.thumbnail,
+            creative_context_json=project.creative_context_json,
+            project_revision=project.revision,
         ))
     db.delete(deleted_item)
     db.commit()
@@ -340,17 +366,35 @@ def update_project(
     project = db.query(Project).filter(
         Project.id == project_id,
         Project.user_id == current_user.id
-    ).first()
+    ).with_for_update().populate_existing().first()
     
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    video_doc = None
+    if project.design_type in {"lesson-video", "creative-video"}:
+        video_doc = db.query(LessonVideoDocument).filter_by(project_id=project.id).with_for_update().populate_existing().first()
+        if not video_doc:
+            raise HTTPException(409, "The video document is missing.")
+        project.revision = video_doc.revision
+        if any(value is not None for value in (req.data, req.width, req.height)):
+            raise HTTPException(409, "Edit video content and output size through the video workspace.")
+    if (project.creative_context_json is not None or req.creative_context is not None) and req.expected_revision is None:
+        raise HTTPException(409, "Reload this creative and include its revision before saving.")
+    if req.expected_revision is not None and req.expected_revision != project.revision:
+        raise HTTPException(409, "This project changed in another session. Reload before saving.")
+    project.revision = (project.revision or 1) + 1
+    if req.creative_context is not None:
+        project.creative_context_json = prepare_context(db, current_user.id, req.creative_context, project.creative_context_json)
     
     if req.name is not None:
         project.name = req.name
     if req.data is not None:
-        if project.design_type == "lesson-video":
+        if project.design_type in {"lesson-video", "creative-video"}:
             raise HTTPException(409, "Edit this project through the lesson-video workspace.")
         persist_project_data_version(db, project, req.data)
+    elif req.creative_context is not None and project.data and video_doc is None:
+        persist_project_data_version(db, project, project.data)
     if req.width is not None:
         project.width = req.width
     if req.height is not None:
@@ -358,7 +402,7 @@ def update_project(
     if req.background_color is not None:
         project.background_color = req.background_color
     if req.design_type is not None:
-        if project.design_type == "lesson-video" and req.design_type != "lesson-video":
+        if project.design_type in {"lesson-video", "creative-video"} and req.design_type != project.design_type:
             raise HTTPException(409, "A lesson video cannot be converted to a canvas project.")
         project.design_type = req.design_type
     if req.generated_asset_id is not None:
@@ -367,6 +411,14 @@ def update_project(
         project.prompt = req.prompt
     if req.provider is not None:
         project.provider = req.provider
+    if video_doc is not None:
+        if req.name is not None:
+            from services.lesson_spec import validate_spec
+            try:
+                video_doc.spec_json = validate_spec({**video_doc.spec_json, "title": req.name})
+            except ValueError as error:
+                raise HTTPException(422, str(error))
+        video_doc.revision = project.revision
     
     project.updated_at = datetime.utcnow()
     db.commit()
@@ -390,7 +442,10 @@ def delete_project(
         raise HTTPException(status_code=404, detail="Project not found")
     
     metadata = deleted_project_metadata(project)
-    if project.design_type == "lesson-video":
+    active_generation = db.query(GenerationJob).filter(GenerationJob.project_id == project.id, GenerationJob.status.in_(["queued", "processing"]), GenerationJob.request_json.is_not(None)).with_for_update().first()
+    if active_generation:
+        raise HTTPException(409, "Cancel active generation before moving this project to trash.")
+    if project.design_type in {"lesson-video", "creative-video"}:
         active = db.query(VideoRenderJob).filter(VideoRenderJob.project_id == project.id, VideoRenderJob.status.in_(["queued", "processing"])).with_for_update().first()
         if active:
             raise HTTPException(409, "Cancel active renders before moving this lesson to trash.")

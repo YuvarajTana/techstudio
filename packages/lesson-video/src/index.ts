@@ -1,5 +1,6 @@
 import Ajv from "ajv";
 import schema from "../schema/lesson-video-v1.json";
+export * from "./creative";
 
 export const TEMPLATE_VERSION = "1.0.0";
 export const MAX_SPEC_BYTES = 1024 * 1024;

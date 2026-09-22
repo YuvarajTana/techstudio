@@ -592,6 +592,8 @@ def get_recommendations(
 @router.post("/generate")
 async def generate_ai_element(req: AIElementGenerateRequest, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Generate original AI element from text prompt using configured AI providers."""
+    from services.ai_policy import require_cloud
+    require_cloud()
     prompt = req.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Element prompt cannot be empty")
@@ -734,4 +736,3 @@ def delete_collection(collection_id: str, current_user: User = Depends(get_curre
     db.delete(col)
     db.commit()
     return {"success": True}
-

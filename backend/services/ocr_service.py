@@ -118,6 +118,8 @@ def parse_ocr_response(value: str) -> dict[str, Any]:
 
 
 def _extract_with_gemini(payload: bytes, mime_type: str, language: str) -> dict[str, Any]:
+    from services.ai_policy import require_cloud
+    require_cloud()
     import google.generativeai as genai
 
     model_name = settings.OCR_MODEL or settings.GEMINI_MODEL
@@ -138,6 +140,8 @@ def _extract_with_gemini(payload: bytes, mime_type: str, language: str) -> dict[
 
 
 def _extract_with_openai(payload: bytes, mime_type: str, language: str) -> dict[str, Any]:
+    from services.ai_policy import require_cloud
+    require_cloud()
     model_name = settings.OPENAI_CHAT_MODEL or settings.OPENAI_MODEL
     data_url = f"data:{mime_type};base64,{base64.b64encode(payload).decode('ascii')}"
     request_payload = json.dumps({
@@ -272,10 +276,11 @@ def _extract_with_apple_vision(payload: bytes, mime_type: str, language: str) ->
 
 
 def _configured_providers() -> list[str]:
+    from services.ai_policy import local_only
     providers = []
     for value in (settings.OCR_PROVIDER, settings.OCR_FALLBACK_PROVIDER):
         providers.extend(provider.strip().lower() for provider in value.split(","))
-    return list(dict.fromkeys(provider for provider in providers if provider))
+    return list(dict.fromkeys(provider for provider in providers if provider and (not local_only() or provider in {"apple-vision", "vision", "local"})))
 
 
 def extract_text_layout(payload: bytes, mime_type: str, language: str = "auto") -> dict[str, Any]:

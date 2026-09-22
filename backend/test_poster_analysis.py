@@ -116,6 +116,8 @@ def test_adjacent_ocr_words_on_same_baseline_are_merged(monkeypatch):
 
 
 def test_ocr_falls_back_to_openai_when_gemini_fails(monkeypatch):
+    from services import ai_policy
+    monkeypatch.setattr(ai_policy, "local_only", lambda: False)
     monkeypatch.setattr(ocr_service.settings, "OCR_PROVIDER", "gemini")
     monkeypatch.setattr(ocr_service.settings, "OCR_FALLBACK_PROVIDER", "openai")
     monkeypatch.setattr(ocr_service.settings, "GEMINI_API_KEY", "gemini-test-key")

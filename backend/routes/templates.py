@@ -11,7 +11,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
@@ -976,6 +976,7 @@ def use_template(
 
 class ApplyTemplateRequest(BaseModel):
     project_id: str
+    expected_revision: Optional[int] = Field(default=None, ge=1)
 
 
 @router.post("/{template_id}/apply", response_model=TemplateUseResponse)
@@ -992,14 +993,21 @@ def apply_template_to_project(
     project = db.query(Project).filter(
         Project.id == req.project_id,
         Project.user_id == current_user.id,
-    ).first()
+    ).with_for_update().populate_existing().first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    if project.design_type in {"lesson-video", "creative-video"}:
+        raise HTTPException(409, "Use a video template in the video workspace.")
+    if project.creative_context_json is not None and req.expected_revision is None:
+        raise HTTPException(409, "Reload this creative and include its revision before applying a template.")
+    if req.expected_revision is not None and req.expected_revision != project.revision:
+        raise HTTPException(409, "This project changed before the template was applied.")
 
     canvas, canvas_width, canvas_height = _load_template_canvas(template)
     canvas_data = _compact_json(canvas)
 
     project.data = canvas_data
+    project.revision = (project.revision or 1) + 1
     project.width = canvas_width
     project.height = canvas_height
     project.background_color = canvas.get("background", "#ffffff")
@@ -1015,6 +1023,8 @@ def apply_template_to_project(
         version_number=(latest_version.version_number + 1) if latest_version else 1,
         name=f"Applied template: {template.name}",
         data=canvas_data,
+        creative_context_json=project.creative_context_json,
+        project_revision=project.revision,
     ))
 
     template.use_count = (template.use_count or 0) + 1

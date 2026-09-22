@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Text, DateTime, ForeignKey, Integer, Boolean, JSON, UniqueConstraint, inspect, text
+from sqlalchemy import create_engine, Column, String, Text, DateTime, ForeignKey, Integer, Boolean, JSON, UniqueConstraint, CheckConstraint, Index, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -73,6 +73,8 @@ class Project(Base):
     category = Column(String(100), nullable=True)
     tags = Column(Text, nullable=True)  # JSON array of tags
     is_favorite = Column(Boolean, default=False)
+    creative_context_json = Column(JSON, nullable=True)
+    revision = Column(Integer, nullable=False, default=1, server_default="1")
     user_id = Column(String(50), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -92,6 +94,8 @@ class DesignVersion(Base):
     name = Column(String(200), nullable=True)  # Named snapshot label
     data = Column(Text, nullable=False)  # Fabric.js JSON snapshot
     thumbnail = Column(Text, nullable=True)
+    creative_context_json = Column(JSON, nullable=True)
+    project_revision = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship("Project", back_populates="versions")
@@ -198,6 +202,8 @@ class BrandKit(Base):
     description = Column(Text, nullable=True)
     industry = Column(String(100), nullable=True)
     website = Column(String(255), nullable=True)
+    profile_json = Column(JSON, nullable=True)
+    revision = Column(Integer, nullable=False, default=1, server_default="1")
     user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -206,6 +212,59 @@ class BrandKit(Base):
     colors = relationship("BrandColor", back_populates="brand_kit", cascade="all, delete-orphan")
     fonts = relationship("BrandFont", back_populates="brand_kit", cascade="all, delete-orphan")
     logos = relationship("BrandLogo", back_populates="brand_kit", cascade="all, delete-orphan")
+    catalog_items = relationship("BrandCatalogItem", back_populates="brand_kit", cascade="all, delete-orphan")
+
+
+class BrandCatalogItem(Base):
+    __tablename__ = "brand_catalog_items"
+    __table_args__ = (
+        CheckConstraint("kind IN ('product', 'service')", name="ck_brand_catalog_kind"),
+        CheckConstraint("revision >= 1", name="ck_brand_catalog_revision"),
+        Index("ix_brand_catalog_owner_brand", "user_id", "brand_kit_id", "archived_at"),
+    )
+
+    id = Column(String(50), primary_key=True)
+    user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    brand_kit_id = Column(String(50), ForeignKey("brand_kits.id", ondelete="CASCADE"), nullable=False)
+    kind = Column(String(20), nullable=False)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    benefits = Column(JSON, nullable=True)
+    price_text = Column(String(200), nullable=True)
+    cta_text = Column(String(255), nullable=True)
+    cta_url = Column(String(2048), nullable=True)
+    revision = Column(Integer, nullable=False, default=1, server_default="1")
+    archived_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    brand_kit = relationship("BrandKit", back_populates="catalog_items")
+    media = relationship("BrandCatalogMedia", back_populates="catalog_item", cascade="all, delete-orphan", order_by="BrandCatalogMedia.sort_order")
+
+
+class BrandCatalogMedia(Base):
+    __tablename__ = "brand_catalog_media"
+    __table_args__ = (
+        CheckConstraint(
+            "(uploaded_asset_id IS NOT NULL AND generated_asset_id IS NULL) OR "
+            "(uploaded_asset_id IS NULL AND generated_asset_id IS NOT NULL)",
+            name="ck_brand_catalog_media_one_asset",
+        ),
+        CheckConstraint("sort_order >= 0", name="ck_brand_catalog_media_order"),
+        Index("ix_brand_catalog_media_item", "catalog_item_id", "sort_order"),
+    )
+
+    id = Column(String(50), primary_key=True)
+    catalog_item_id = Column(String(50), ForeignKey("brand_catalog_items.id", ondelete="CASCADE"), nullable=False)
+    uploaded_asset_id = Column(String(50), ForeignKey("uploaded_assets.id", ondelete="RESTRICT"), nullable=True)
+    generated_asset_id = Column(String(50), ForeignKey("generated_assets.id", ondelete="RESTRICT"), nullable=True)
+    role = Column(String(40), nullable=False, default="hero", server_default="hero")
+    sort_order = Column(Integer, nullable=False, default=0, server_default="0")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    catalog_item = relationship("BrandCatalogItem", back_populates="media")
+    uploaded_asset = relationship("UploadedAsset")
+    generated_asset = relationship("GeneratedAsset")
 
 
 class BrandColor(Base):
@@ -603,6 +662,10 @@ class RecentHistory(Base):
 
 class GenerationJob(Base):
     __tablename__ = "generation_jobs"
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_generation_job_idempotency"),
+        Index("ix_generation_job_queue", "status", "lease_expires_at", "created_at"),
+    )
 
     id = Column(String(50), primary_key=True)
     user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
@@ -613,8 +676,33 @@ class GenerationJob(Base):
     status = Column(String(50), nullable=False)
     error = Column(Text, nullable=True)
     metadata_json = Column(JSON, nullable=True)
+    request_json = Column(JSON, nullable=True)
+    base_revision = Column(Integer, nullable=True)
+    stage = Column(String(160), nullable=True)
+    result_json = Column(JSON, nullable=True)
+    progress = Column(Integer, nullable=False, default=0, server_default="0")
+    idempotency_key = Column(String(128), nullable=True)
+    attempt = Column(Integer, nullable=False, default=0, server_default="0")
+    cancel_requested = Column(Boolean, nullable=False, default=False, server_default="0")
+    lease_owner = Column(String(80), nullable=True)
+    lease_token = Column(String(64), nullable=True)
+    lease_expires_at = Column(DateTime, nullable=True)
+    heartbeat_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class LocalResourceLease(Base):
+    """Shared expiring resource lock for local inference and video rendering."""
+
+    __tablename__ = "local_resource_leases"
+
+    lease_key = Column(String(80), primary_key=True)
+    owner = Column(String(80), nullable=True)
+    token = Column(String(64), nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
 class ExportMetadata(Base):
@@ -649,6 +737,7 @@ class LessonVideoSnapshot(Base):
     document_revision = Column(Integer, nullable=False)
     spec_json = Column(JSON, nullable=False)
     plan_json = Column(JSON, nullable=False)
+    asset_manifest_json = Column(JSON, nullable=True)
     spec_hash = Column(String(64), nullable=False)
     bundle_id = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -7,6 +7,9 @@ from PIL import Image
 
 def remove_background_with_provider(payload: bytes) -> Optional[Image.Image]:
     """Use the configured production provider, returning None for the local fallback."""
+    from services.ai_policy import local_only
+    if local_only():
+        return None
     api_key = os.getenv("REMOVE_BG_API_KEY", "").strip()
     if not api_key:
         return None

@@ -7,6 +7,13 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 
 
+@pytest.fixture(autouse=True)
+def isolate_legacy_adapter_unit_contract(monkeypatch):
+    """Test retained adapters in isolation; product entry points stay local-only."""
+    from services import ai_policy
+    monkeypatch.setattr(ai_policy, "local_only", lambda: False)
+
+
 def test_image_proxy_rejects_local_fallback_when_providers_fail(monkeypatch) -> None:
     monkeypatch.setattr(ai, "get_image_provider_order", lambda: ["pollinations"])
     monkeypatch.setattr(
