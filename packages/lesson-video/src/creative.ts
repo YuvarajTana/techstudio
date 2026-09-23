@@ -26,8 +26,21 @@ export interface CreativeNarration {
   durationFrames?: number;
   approvedTextHash?: string;
 }
+export type TransitionType = "fade" | "slide" | "wipe" | "clock-wipe" | "zoom";
+export interface SceneTransition {
+  type: TransitionType;
+  direction?: "from-left" | "from-right" | "from-top" | "from-bottom";
+  /** Overlap with the previous scene, 6–30 frames. Ignored on the first scene. */
+  durationFrames: number;
+  timing?: "linear" | "spring";
+}
 export interface CreativeSceneExtras {
   motion?: "none" | "fade" | "slide" | "zoom";
+  /** Entrance easing. Absent = the original 15-frame linear entrance. */
+  easing?: "linear" | "ease" | "spring";
+  /** Reveal list items, cards and facts one after another. */
+  stagger?: boolean;
+  transitionIn?: SceneTransition;
   narration?: CreativeNarration;
   captions?: CaptionCue[];
 }
@@ -57,14 +70,86 @@ export type CreativeScene = CreativeSceneExtras &
         action: string;
         contact: string;
       })
+    | (SceneBase & {
+        type: "slide";
+        title: string;
+        layout: "title-bullets" | "split-image" | "quote" | "big-statement";
+        body?: string;
+        bullets?: string[];
+        imageAssetId?: string;
+        icon?: string;
+      })
+    | (SceneBase & {
+        type: "code";
+        title: string;
+        language: CodeLanguage;
+        code: string;
+        reveal: "typewriter" | "lines" | "none";
+        highlights?: CodeHighlight[];
+      })
+    | (SceneBase & {
+        type: "listing";
+        title: string;
+        address: string;
+        price: string;
+        photoAssetIds: string[];
+        facts: ListingFacts;
+        features: string[];
+        pan: "kenburns" | "none";
+      })
+    | (SceneBase & { type: "stats"; title: string; items: StatItem[] })
+    | (SceneBase & {
+        type: "logo";
+        variant: "intro" | "outro";
+        title?: string;
+        subtitle?: string;
+        contact?: string;
+      })
   );
+export type CodeLanguage = "python" | "javascript" | "typescript" | "sql" | "bash" | "json" | "text";
+export interface CodeHighlight {
+  atFrame: number;
+  fromLine: number;
+  toLine: number;
+  note?: string;
+}
+export interface ListingFacts {
+  beds?: number;
+  baths?: number;
+  sqft?: number;
+  lot?: string;
+  parking?: number;
+}
+export interface StatItem {
+  value: number;
+  label: string;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  icon?: string;
+}
+export type CreativePreset = "landscape-1080p" | "portrait-1080p" | "square-1080" | "portrait-4x5";
+/** Output sizes for every creative-video preset (mirrored in backend/services/lesson_spec.py). */
+export const PRESET_SIZES: Record<CreativePreset, { width: number; height: number }> = {
+  "landscape-1080p": { width: 1920, height: 1080 },
+  "portrait-1080p": { width: 1080, height: 1920 },
+  "square-1080": { width: 1080, height: 1080 },
+  "portrait-4x5": { width: 1080, height: 1350 },
+};
+/** Theme ids accepted in `style.themeId` (tokens live in @teckstudio/design-spec). */
+export const VIDEO_THEME_IDS = [
+  "tech-blue", "purple-ai", "minimal-light", "corporate-navy", "black-gold", "green-growth",
+  "orange-energy", "neon-future", "estate-classic", "estate-modern", "estate-luxe",
+] as const;
 export interface CreativeVideoSpec {
   schema: "creative-video/v2";
   id: string;
   title: string;
   locale: "en";
   purpose: "promotion" | "explainer";
-  output: { preset: "landscape-1080p" | "portrait-1080p"; fps: 30 };
+  output: { preset: CreativePreset; fps: 30 };
+  /** Optional visual theme; absent = the original paper look. */
+  style?: { themeId: (typeof VIDEO_THEME_IDS)[number] };
   brand: {
     name: string;
     tagline: string;
@@ -86,6 +171,14 @@ export interface VideoPlan {
   templateVersion: string;
 }
 const structure = new Ajv({ allErrors: true, strict: false }).compile(schema);
+/** Frames a scene overlaps the one before it (0 for the first scene). */
+export function transitionOverlap(scenes: CreativeScene[], index: number): number {
+  return index > 0 ? (scenes[index].transitionIn?.durationFrames ?? 0) : 0;
+}
+/** Total length after transition overlaps: Σ durations − Σ overlaps. */
+export function compiledTotal(scenes: CreativeScene[]): number {
+  return scenes.reduce((sum, scene, i) => sum + creativeSceneDuration(scene) - transitionOverlap(scenes, i), 0);
+}
 export function creativeSceneDuration(scene: CreativeScene): number {
   return Math.max(
     scene.durationFrames,
@@ -195,6 +288,37 @@ export function validateCreativeVideo(value: unknown): string[] {
       });
     }
   }
+  total = compiledTotal(spec.scenes);
+  for (const [i, scene] of spec.scenes.entries()) {
+    const p = `/scenes/${i}`;
+    const duration = creativeSceneDuration(scene);
+    if (i > 0 && scene.transitionIn) {
+      const previous = spec.scenes[i - 1];
+      const t = scene.transitionIn.durationFrames;
+      if (t > Math.floor(Math.min(creativeSceneDuration(previous), duration) / 2))
+        errors.push(`${p}/transitionIn: must be at most half of this and the previous scene.`);
+      if (previous.narration?.assetId && creativeSceneDuration(previous) - t < (previous.narration.durationFrames ?? 0))
+        errors.push(`${p}/transitionIn: would cut off the previous scene's narration; lengthen that scene.`);
+    }
+    if (scene.type === "slide") ref(scene.imageAssetId, "image", `${p}/imageAssetId`);
+    if (scene.type === "listing") {
+      scene.photoAssetIds.forEach((id, j) => ref(id, "image", `${p}/photoAssetIds/${j}`));
+      if (new Set(scene.photoAssetIds).size !== scene.photoAssetIds.length)
+        errors.push(`${p}/photoAssetIds: photos must be different.`);
+    }
+    if (scene.type === "code") {
+      const lines = scene.code.split("\n").length;
+      if (lines > 24) errors.push(`${p}/code: keep code to 24 lines per scene.`);
+      let previousFrame = -1;
+      for (const h of scene.highlights ?? []) {
+        if (h.atFrame <= previousFrame || h.atFrame >= duration)
+          errors.push(`${p}/highlights: times must increase and stay inside the scene.`);
+        if (h.fromLine > h.toLine || h.toLine > lines)
+          errors.push(`${p}/highlights: lines must exist and be in order.`);
+        previousFrame = h.atFrame;
+      }
+    }
+  }
   if (total < 450 || total > 2700)
     errors.push(
       "/scenes: new videos must be 15–90 seconds, including measured narration.",
@@ -216,16 +340,18 @@ export function parseVideo(value: unknown): VideoSpec {
 export function compileVideo(value: unknown): VideoPlan {
   const spec = parseVideo(value);
   if (spec.schema === "lesson-video/v1") return compileLesson(spec);
+  // Scenes with transitionIn start `durationFrames` before the previous one ends.
   let position = 0;
-  const scenes = spec.scenes.map((s) => {
-    const startFrame = position;
-    position += creativeSceneDuration(s);
-    return { id: s.id, startFrame, endFrame: position };
+  const scenes = spec.scenes.map((s, i) => {
+    const startFrame = position - transitionOverlap(spec.scenes, i);
+    const endFrame = startFrame + creativeSceneDuration(s);
+    position = endFrame;
+    return { id: s.id, startFrame, endFrame };
   });
-  const portrait = spec.output.preset === "portrait-1080p";
+  const size = PRESET_SIZES[spec.output.preset];
   return {
-    width: portrait ? 1080 : 1920,
-    height: portrait ? 1920 : 1080,
+    width: size.width,
+    height: size.height,
     fps: 30,
     durationInFrames: position,
     scenes,

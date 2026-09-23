@@ -19,6 +19,15 @@ import {
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-600.css";
 import "@fontsource/inter/latin-700.css";
+import "@fontsource/outfit/latin-400.css";
+import "@fontsource/outfit/latin-600.css";
+import "@fontsource/outfit/latin-700.css";
+import "@fontsource/outfit/latin-800.css";
+import "@fontsource/jetbrains-mono/latin-400.css";
+import "@fontsource/jetbrains-mono/latin-700.css";
+import "@fontsource/playfair-display/latin-400.css";
+import "@fontsource/playfair-display/latin-400-italic.css";
+import "@fontsource/playfair-display/latin-700.css";
 import {CreativeVideo} from "./CreativeVideo";
 import type {VideoSpec} from "@teckstudio/lesson-video";
 export {CreativeVideo};
@@ -31,15 +40,21 @@ export type LessonProps = { spec: LessonVideoSpec };
 const ink = "#1a2638",
   purple = "#6843bb",
   muted = "#5b6878";
-export function useFonts() {
-  const [handle] = useState(() => delayRender("Loading packaged Inter fonts"));
+const INTER = [400, 600, 700].map((weight) => ({ family: "Inter", weight }));
+/** Block rendering until the packaged fonts (default: Inter) are loaded. */
+export function useFonts(fonts: { family: string; weight: number }[] = INTER) {
+  const [handle] = useState(() => delayRender("Loading packaged fonts"));
+  const key = fonts.map((f) => `${f.weight} ${f.family}`).join("|");
   useEffect(() => {
     Promise.all(
-      [400, 600, 700].map((w) => document.fonts.load(`${w} 40px Inter`)),
+      key.split("|").map((entry) => {
+        const [weight, ...family] = entry.split(" ");
+        return document.fonts.load(`${weight} 40px "${family.join(" ")}"`);
+      }),
     )
       .then(() => continueRender(handle))
       .catch(cancelRender);
-  }, [handle]);
+  }, [handle, key]);
 }
 const labelStyle: React.CSSProperties = {
   fontSize: 24,

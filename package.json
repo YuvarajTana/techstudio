@@ -19,7 +19,8 @@
     "test:design": "node --import tsx --test packages/design-spec/tests/*.test.ts",
     "verify:design": "node --import tsx scripts/verify_design_posters.ts",
     "icons:vendor": "node scripts/vendor-icons.mjs",
-    "test": "npm run test:design && npm run test:video"
+    "test": "npm run test:design && npm run test:video",
+    "verify:motion": "node --import tsx scripts/verify_motion_video.ts"
   },
   "devDependencies": {
     "@tabler/icons": "^3.48.0",

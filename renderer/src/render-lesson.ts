@@ -36,18 +36,25 @@ export interface RuntimeInfo {
 }
 export const hash = (data: string | Buffer) =>
   createHash("sha256").update(data).digest("hex");
+/** Packaged font families whose latin files are bundled into the renderer. */
+export const BUNDLED_FONT_PACKAGES = [
+  "inter",
+  "outfit",
+  "jetbrains-mono",
+  "playfair-display",
+] as const;
 async function fontHashes() {
   const require = createRequire(import.meta.url);
-  const fontRoot = path.dirname(
-    require.resolve("@fontsource/inter/latin-400.css"),
-  );
   const hashes: Record<string, string> = {};
-  for (const weight of [400, 600, 700]) {
-    for (const extension of ["woff2", "woff"]) {
-      const name = `inter-latin-${weight}-normal.${extension}`;
-      hashes[name] = hash(
-        await fs.readFile(path.join(fontRoot, "files", name)),
-      );
+  for (const name of BUNDLED_FONT_PACKAGES) {
+    const fontRoot = path.dirname(
+      require.resolve(`@fontsource/${name}/latin-400.css`),
+    );
+    const files = (await fs.readdir(path.join(fontRoot, "files")))
+      .filter((file) => file.includes("-latin-") && /\.(woff2?|ttf)$/.test(file))
+      .sort();
+    for (const file of files) {
+      hashes[file] = hash(await fs.readFile(path.join(fontRoot, "files", file)));
     }
   }
   return hashes;

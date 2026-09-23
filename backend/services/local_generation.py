@@ -19,7 +19,7 @@ from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 from config import settings
 from database import GenerationJob, Project, SessionLocal
-from services.lesson_spec import ROOT, CREATIVE_SCHEMA, validate_spec
+from services.lesson_spec import ROOT, CREATIVE_SCHEMA, PRESET_SIZES, validate_spec
 from services import local_resource
 
 KINDS = {"poster-draft", "video-draft", "image", "speech", "transcribe"}
@@ -246,11 +246,8 @@ def validate_input(db, user_id, kind, value):
         raise HTTPException(422, "Unknown poster family.")
     if not isinstance(value.get("preset", "landscape-1080p"), str) or value.get(
         "preset", "landscape-1080p"
-    ) not in {
-        "landscape-1080p",
-        "portrait-1080p",
-    }:
-        raise HTTPException(422, "Choose landscape or portrait output.")
+    ) not in PRESET_SIZES:
+        raise HTTPException(422, "Choose a supported video format.")
     duration = value.get("duration_seconds", 30)
     if (
         isinstance(duration, bool)

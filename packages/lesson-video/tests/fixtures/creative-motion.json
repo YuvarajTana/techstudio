@@ -1,0 +1,281 @@
+{
+  "spec": {
+    "schema": "creative-video/v2",
+    "id": "motion-fixture",
+    "title": "Motion graphics fixture",
+    "locale": "en",
+    "purpose": "explainer",
+    "output": {
+      "preset": "square-1080",
+      "fps": 30
+    },
+    "style": {
+      "themeId": "tech-blue"
+    },
+    "brand": {
+      "name": "TECKSTUDIO",
+      "tagline": "Learn by seeing",
+      "primaryColor": "#38bdf8",
+      "accentColor": "#22d3ee"
+    },
+    "assets": [
+      {
+        "id": "photo-a",
+        "kind": "image",
+        "source": "uploaded",
+        "assetId": "upload_a"
+      },
+      {
+        "id": "photo-b",
+        "kind": "image",
+        "source": "uploaded",
+        "assetId": "upload_b"
+      }
+    ],
+    "scenes": [
+      {
+        "id": "intro",
+        "type": "logo",
+        "variant": "intro",
+        "durationFrames": 60,
+        "title": "TECKSTUDIO",
+        "subtitle": "Motion fixture",
+        "easing": "spring"
+      },
+      {
+        "id": "slide",
+        "type": "slide",
+        "layout": "title-bullets",
+        "durationFrames": 120,
+        "title": "Three ideas",
+        "bullets": [
+          "Cache hits are fast",
+          "Misses fill the cache",
+          "Invalidate on write"
+        ],
+        "stagger": true,
+        "easing": "spring",
+        "transitionIn": {
+          "type": "fade",
+          "durationFrames": 12,
+          "timing": "spring"
+        }
+      },
+      {
+        "id": "code",
+        "type": "code",
+        "language": "python",
+        "reveal": "lines",
+        "durationFrames": 150,
+        "title": "Comprehension",
+        "code": "prices = [120, 45, 80]\ndeals = [p * 0.9 for p in prices if p > 50]\nprint(deals)",
+        "highlights": [
+          {
+            "atFrame": 30,
+            "fromLine": 2,
+            "toLine": 2,
+            "note": "Filter and transform"
+          }
+        ],
+        "transitionIn": {
+          "type": "slide",
+          "direction": "from-right",
+          "durationFrames": 15
+        }
+      },
+      {
+        "id": "listing",
+        "type": "listing",
+        "durationFrames": 150,
+        "title": "Modern family home",
+        "address": "24 Maple Grove Lane",
+        "price": "$749,000",
+        "photoAssetIds": [
+          "photo-a",
+          "photo-b"
+        ],
+        "facts": {
+          "beds": 4,
+          "baths": 3,
+          "sqft": 2450
+        },
+        "features": [
+          "Open-plan kitchen",
+          "Garden"
+        ],
+        "pan": "kenburns",
+        "stagger": true,
+        "transitionIn": {
+          "type": "wipe",
+          "direction": "from-left",
+          "durationFrames": 20
+        }
+      },
+      {
+        "id": "stats",
+        "type": "stats",
+        "durationFrames": 90,
+        "title": "Results",
+        "items": [
+          {
+            "value": 6,
+            "label": "Days on market"
+          },
+          {
+            "value": 104,
+            "label": "Of asking",
+            "suffix": "%"
+          }
+        ],
+        "transitionIn": {
+          "type": "zoom",
+          "durationFrames": 10
+        }
+      },
+      {
+        "id": "outro",
+        "type": "logo",
+        "variant": "outro",
+        "durationFrames": 60,
+        "title": "Thanks for watching",
+        "contact": "teckstudio.example",
+        "transitionIn": {
+          "type": "clock-wipe",
+          "durationFrames": 14
+        }
+      }
+    ]
+  },
+  "expectedPlan": {
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 559,
+    "scenes": [
+      {
+        "id": "intro",
+        "startFrame": 0,
+        "endFrame": 60
+      },
+      {
+        "id": "slide",
+        "startFrame": 48,
+        "endFrame": 168
+      },
+      {
+        "id": "code",
+        "startFrame": 153,
+        "endFrame": 303
+      },
+      {
+        "id": "listing",
+        "startFrame": 283,
+        "endFrame": 433
+      },
+      {
+        "id": "stats",
+        "startFrame": 423,
+        "endFrame": 513
+      },
+      {
+        "id": "outro",
+        "startFrame": 499,
+        "endFrame": 559
+      }
+    ],
+    "templateVersion": "2.0.0"
+  },
+  "invalid": [
+    {
+      "patch": {
+        "scene": 1,
+        "set": {
+          "transitionIn": {
+            "type": "fade",
+            "durationFrames": 31
+          }
+        }
+      },
+      "why": "transition longer than 30 frames (schema)"
+    },
+    {
+      "patch": {
+        "scene": 5,
+        "set": {
+          "durationFrames": 40,
+          "transitionIn": {
+            "type": "fade",
+            "durationFrames": 25
+          }
+        }
+      },
+      "why": "transition longer than half of a 40-frame scene"
+    },
+    {
+      "patch": {
+        "scene": 2,
+        "set": {
+          "highlights": [
+            {
+              "atFrame": 30,
+              "fromLine": 2,
+              "toLine": 9
+            }
+          ]
+        }
+      },
+      "why": "highlight line outside code"
+    },
+    {
+      "patch": {
+        "scene": 3,
+        "set": {
+          "photoAssetIds": [
+            "photo-a",
+            "missing"
+          ]
+        }
+      },
+      "why": "unknown photo asset"
+    },
+    {
+      "patch": {
+        "scene": 4,
+        "set": {
+          "items": []
+        }
+      },
+      "why": "stats need items"
+    },
+    {
+      "patch": {
+        "scene": 0,
+        "set": {
+          "variant": "sideways"
+        }
+      },
+      "why": "unknown logo variant"
+    },
+    {
+      "patch": {
+        "top": {
+          "style": {
+            "themeId": "rainbow"
+          }
+        }
+      },
+      "why": "unknown theme"
+    },
+    {
+      "patch": {
+        "top": {
+          "output": {
+            "preset": "cinema-4k",
+            "fps": 30
+          }
+        }
+      },
+      "why": "unknown preset"
+    }
+  ]
+}
