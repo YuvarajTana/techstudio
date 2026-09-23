@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from html import escape
@@ -545,7 +546,66 @@ def build_curated_image_assets(category_slug: str | None = None, limit_per_categ
     return assets
 
 
+ATTRIBUTION_FILE = "ATTRIBUTION.json"
+OPEN_LICENSES = {"CC0-1.0", "PDM-1.0"}
+
+
+def load_attribution(category: str) -> dict[str, dict]:
+    """Per-file provenance from backend/media/asset-library/<category>/ATTRIBUTION.json.
+
+    The manifest is written by scripts/fetch_cc0_photos.py from the source's
+    own licence metadata; files without an entry are treated as unverified.
+    """
+    path = REFERENCE_MEDIA_DIR / category / ATTRIBUTION_FILE
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text())
+    return {entry["file"]: entry for entry in data.get("photos", [])}
+
+
+def _build_attributed_photo_assets(category: str, limit: int, attribution: dict[str, dict]) -> list[tuple]:
+    category_fragment = category.replace("-", "")[:8]
+    assets: list[tuple] = []
+    media_dir = REFERENCE_MEDIA_DIR / category
+    for index, (file_name, entry) in enumerate(sorted(attribution.items())[:limit]):
+        media_file = media_dir / file_name
+        if not media_file.is_file():
+            continue
+        full_file, thumbnail_file, width, height = _ensure_reference_derivatives(category, media_file)
+        media_url = _reference_media_url(full_file)
+        tags = ",".join([f"category:{category}", category, entry.get("key", ""), *entry.get("tags", []), "style:photo", f"license:{entry['license'].lower()}"])
+        author = entry.get("author_name") or "Unknown author"
+        assets.append((
+            f"cur_img_{category_fragment}_{index + 1:03d}_cc0",
+            entry.get("title") or media_file.stem,
+            "images",
+            tags,
+            media_url,
+            "image/jpeg" if full_file.suffix.lower() in {".jpg", ".jpeg"} else "image/png",
+            entry.get("source", "wikimedia-commons"),
+            entry.get("source_url") or media_url,
+            entry["license"],
+            entry.get("license_url"),
+            f"{entry.get('title') or media_file.stem} by {author}, {entry['license']} via {entry.get('source', 'Wikimedia Commons')}",
+            "local-reference-media",
+            width,
+            height,
+            "local://teckstudio/" + media_url.removeprefix("/media/"),
+            _reference_media_url(thumbnail_file),
+            {
+                "author_name": author,
+                "author_url": entry.get("author_url"),
+                "source_page_url": entry.get("source_page_url"),
+                "attribution_required": entry["license"] not in OPEN_LICENSES,
+            },
+        ))
+    return assets
+
+
 def _build_reference_photo_assets(category: str, limit: int) -> list[tuple]:
+    attribution = load_attribution(category)
+    if attribution:
+        return _build_attributed_photo_assets(category, limit, attribution)
     category_fragment = category.replace("-", "")[:8]
     photo_subjects = REFERENCE_PHOTO_SUBJECTS.get(category, [])
     media_dir = REFERENCE_MEDIA_DIR / category
