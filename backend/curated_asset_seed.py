@@ -563,8 +563,8 @@ def _build_reference_photo_assets(category: str, limit: int) -> list[tuple]:
 
         asset_id = f"cur_img_{category_fragment}_{index + 1:03d}_photo"
         full_file, thumbnail_file, width, height = _ensure_reference_derivatives(category, media_file)
-        media_url = f"/media/asset-library-full/{category}/{full_file.name}"
-        thumbnail_url = f"/media/asset-library-thumbnails/{category}/{thumbnail_file.name}"
+        media_url = _reference_media_url(full_file)
+        thumbnail_url = _reference_media_url(thumbnail_file)
         mime_type = "image/jpeg" if full_file.suffix.lower() in {".jpg", ".jpeg"} else "image/png"
         tags = ",".join([
             f"category:{category}",
@@ -575,7 +575,7 @@ def _build_reference_photo_assets(category: str, limit: int) -> list[tuple]:
             "style:photo-reference",
             f"variant:{index + 1:03d}",
         ])
-        local_path = f"local://teckstudio/asset-library-full/{category}/{full_file.name}"
+        local_path = "local://teckstudio/" + media_url.removeprefix("/media/")
         assets.append((
             asset_id,
             title,
@@ -597,15 +597,37 @@ def _build_reference_photo_assets(category: str, limit: int) -> list[tuple]:
     return assets
 
 
+def _reference_media_url(path: Path) -> str:
+    """Public /media URL for a file under backend/media (source or derivative)."""
+    media_root = REFERENCE_MEDIA_DIR.parent
+    return "/media/" + path.resolve().relative_to(media_root.resolve()).as_posix()
+
+
+def _is_fresh(derived: Path, source: Path) -> bool:
+    try:
+        return derived.stat().st_size > 0 and derived.stat().st_mtime >= source.stat().st_mtime
+    except OSError:
+        return False
+
+
 def _ensure_reference_derivatives(category: str, media_file: Path) -> tuple[Path, Path, int, int]:
+    """Create (or reuse) the full-size and thumbnail copies of a reference photo.
+
+    The derived folders are not tracked in git; they are rebuilt from
+    backend/media/asset-library on demand. Fresh files are reused untouched.
+    If Pillow cannot process the image, the source file is served directly.
+    """
     full_dir = REFERENCE_FULL_MEDIA_DIR / category
     thumbnail_dir = REFERENCE_THUMBNAIL_MEDIA_DIR / category
-    full_dir.mkdir(parents=True, exist_ok=True)
-    thumbnail_dir.mkdir(parents=True, exist_ok=True)
     full_file = full_dir / media_file.name
     thumbnail_file = thumbnail_dir / media_file.name
 
+    if _is_fresh(full_file, media_file) and _is_fresh(thumbnail_file, media_file):
+        return full_file, thumbnail_file, *_image_dimensions(full_file)
+
     try:
+        full_dir.mkdir(parents=True, exist_ok=True)
+        thumbnail_dir.mkdir(parents=True, exist_ok=True)
         from PIL import Image
         with Image.open(media_file) as source:
             source = source.convert("RGB") if source.mode not in {"RGB", "RGBA"} else source.copy()
@@ -627,6 +649,24 @@ def _ensure_reference_derivatives(category: str, media_file: Path) -> tuple[Path
             return full_file, thumbnail_file, full_size[0], full_size[1]
     except Exception:
         return media_file, media_file, *_image_dimensions(media_file)
+
+
+def ensure_all_reference_derivatives() -> int:
+    """Build any missing or stale derivatives for every reference category.
+
+    Called at startup even when asset seeding is skipped, so a fresh clone with
+    an existing database still serves the /media/asset-library-full URLs.
+    Returns the number of source images checked.
+    """
+    if not REFERENCE_MEDIA_DIR.is_dir():
+        return 0
+    checked = 0
+    for category_dir in sorted(p for p in REFERENCE_MEDIA_DIR.iterdir() if p.is_dir()):
+        for media_file in sorted(category_dir.glob("*")):
+            if media_file.suffix.lower() in {".jpg", ".jpeg", ".png"}:
+                _ensure_reference_derivatives(category_dir.name, media_file)
+                checked += 1
+    return checked
 
 
 def _image_dimensions(path: Path) -> tuple[int, int]:
@@ -1107,3 +1147,10 @@ def _minimal_scene(key: str, width: int, height: int, accent: str, light: str, s
     if key in {"frame", "paper", "book"}:
         return f'<rect x="{width*.30}" y="{height*.22}" width="{width*.40}" height="{height*.42}" rx="8" fill="{light}" stroke="{accent}" stroke-width="{unit*.018}" filter="url(#softShadow)"/><rect x="{width*.36}" y="{height*.31}" width="{width*.28}" height="{height*.22}" fill="#ffffff" opacity="0.82"/><rect x="{width*.22}" y="{height*.76}" width="{width*.56}" height="{unit*.025}" rx="12" fill="{accent}" opacity="0.32"/>'
     return f'<rect x="{width*.28}" y="{height*.46}" width="{width*.44}" height="{height*.16}" rx="{unit*.035}" fill="{light}" filter="url(#softShadow)"/><circle cx="{width*.38}" cy="{height*.36}" r="{unit*.07}" fill="{accent}" opacity="0.58"/><rect x="{width*.54}" y="{height*.28}" width="{width*.16}" height="{height*.20}" rx="{unit*.025}" fill="{accent}" opacity="0.45"/><rect x="{width*.20}" y="{height*.74}" width="{width*.60}" height="{unit*.026}" rx="12" fill="{accent}" opacity="0.28"/>'
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--derivatives" in sys.argv:
+        print(f"Checked {ensure_all_reference_derivatives()} reference images.")

@@ -822,6 +822,13 @@ def init_db():
     _seed_default_categories()
     if _has_active_public_assets():
         print("Asset seed skipped: active public assets already exist.")
+        # Derived photo sizes are not tracked in git; rebuild missing ones so
+        # existing asset rows keep resolving after a fresh clone.
+        try:
+            from curated_asset_seed import ensure_all_reference_derivatives
+            ensure_all_reference_derivatives()
+        except Exception as exc:  # never block startup on media derivation
+            print(f"Reference derivative check failed: {exc}")
     else:
         _seed_default_assets()
 

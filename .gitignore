@@ -47,6 +47,9 @@ backend/media/generated_assets/
 backend/media/uploads/
 backend/media/processed-images/
 backend/media/fonts/
+# Derived from backend/media/asset-library by curated_asset_seed.py
+backend/media/asset-library-full/
+backend/media/asset-library-thumbnails/
 
 # Temporary video rendering
 backend/media/video-renders/
