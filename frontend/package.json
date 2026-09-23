@@ -11,10 +11,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/outfit": "^5.3.0",
     "@fontsource/playfair-display": "^5.3.0",
     "@remotion/player": "4.0.523",
+    "@teckstudio/design-spec": "*",
     "@teckstudio/lesson-video": "*",
     "@teckstudio/video-scenes": "*",
     "fabric": "^5.3.0",

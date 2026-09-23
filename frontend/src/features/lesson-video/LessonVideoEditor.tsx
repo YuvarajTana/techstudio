@@ -8,7 +8,7 @@ import {
   validateVideo,
   type LessonVideoSpec,
   type LessonScene,
-  type VideoSpec, type CreativeVideoSpec, type CreativeScene, captionsToSrt,
+  type VideoSpec, type CreativeVideoSpec, type CreativeScene, captionsToSrt, PRESET_SIZES, VIDEO_THEME_IDS, sceneLabel,
 } from "@teckstudio/lesson-video";
 import { apiFetch, apiJson } from "../../services/apiClient";
 import SceneFields, { TextField } from "./SceneFields";
@@ -435,7 +435,7 @@ export default function LessonVideoEditor() {
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span>
-                    <b>{"title" in s ? s.title : s.prompt}</b>
+                    <b>{sceneLabel(s)}</b>
                     <small>
                       {s.type} · {(s.durationFrames / 30).toFixed(1)}s
                     </small>
@@ -457,7 +457,7 @@ export default function LessonVideoEditor() {
                 <option value="diagram">Diagram walkthrough</option>
                 <option value="question">Question / reveal</option>
                 <option value="recap">Recap</option>
-                {isCreative && <><option value="image">Image / product</option><option value="features">Benefits / features</option><option value="comparison">Comparison</option><option value="process">Process / steps</option><option value="cta">Call to action</option></>}
+                {isCreative && <><option value="image">Image / product</option><option value="features">Benefits / features</option><option value="comparison">Comparison</option><option value="process">Process / steps</option><option value="cta">Call to action</option><option value="slide">Slide</option><option value="code">Code walkthrough</option><option value="listing">Property listing</option><option value="stats">Animated stats</option><option value="logo">Logo intro / outro</option></>}
               </select>
             </label>
             <button
@@ -487,7 +487,7 @@ export default function LessonVideoEditor() {
             <button onClick={exportDraft}>Export JSON</button>
           </div>
           <p className="lv-small">
-            {isCreative ? `${draft.output.preset === "portrait-1080p" ? "Portrait" : "Landscape"} · 15–90 seconds · 30 fps` : "Landscape · 1080p · 30 fps"}
+            {isCreative ? `${PRESET_SIZES[draft.output.preset].width} × ${PRESET_SIZES[draft.output.preset].height} · 15–90 seconds · 30 fps` : "Landscape · 1080p · 30 fps"}
             <br />
             Local rendering · {isCreative ? "Optional narration and captions" : "Silent video"}
           </p>
@@ -599,7 +599,7 @@ export default function LessonVideoEditor() {
                   }
                 />
               </fieldset>
-            </details> : <details open><summary>Video title and brand</summary><TextField label="Video title" value={draft.title} limit={160} onChange={title=>setDraft({...draft,title})}/><label className="lv-field">Format<select value={draft.output.preset} onChange={e=>setDraft({...draft,output:{...draft.output,preset:e.target.value as CreativeVideoSpec["output"]["preset"]}})}><option value="landscape-1080p">Landscape · 1920 × 1080</option><option value="portrait-1080p">Portrait · 1080 × 1920</option></select></label><TextField label="Brand name" value={draft.brand.name} limit={120} onChange={name=>setDraft({...draft,brand:{...draft.brand,name}})}/><TextField label="Brand tagline" value={draft.brand.tagline} limit={180} onChange={tagline=>setDraft({...draft,brand:{...draft.brand,tagline}})}/><div className="lv-inline"><label className="lv-field">Primary color<input type="color" value={draft.brand.primaryColor} onChange={e=>setDraft({...draft,brand:{...draft.brand,primaryColor:e.target.value}})}/></label><label className="lv-field">Accent color<input type="color" value={draft.brand.accentColor} onChange={e=>setDraft({...draft,brand:{...draft.brand,accentColor:e.target.value}})}/></label></div><button onClick={()=>downloadBlob(new Blob([captionsToSrt(draft)],{type:"text/plain"}),"captions.srt")}>Export caption SRT</button></details>}
+            </details> : <details open><summary>Video title and brand</summary><TextField label="Video title" value={draft.title} limit={160} onChange={title=>setDraft({...draft,title})}/><label className="lv-field">Format<select value={draft.output.preset} onChange={e=>setDraft({...draft,output:{...draft.output,preset:e.target.value as CreativeVideoSpec["output"]["preset"]}})}><option value="landscape-1080p">Landscape · 1920 × 1080</option><option value="portrait-1080p">Portrait · 1080 × 1920</option><option value="square-1080">Square · 1080 × 1080</option><option value="portrait-4x5">Portrait post · 1080 × 1350</option></select></label><label className="lv-field">Theme<select value={draft.style?.themeId||""} onChange={e=>{const themeId=e.target.value as NonNullable<CreativeVideoSpec["style"]>["themeId"]|"";const next={...draft};if(themeId)next.style={themeId};else delete next.style;setDraft(next);}}><option value="">Classic paper</option>{VIDEO_THEME_IDS.map(id=><option key={id} value={id}>{id.replace(/-/g," ")}</option>)}</select></label><TextField label="Brand name" value={draft.brand.name} limit={120} onChange={name=>setDraft({...draft,brand:{...draft.brand,name}})}/><TextField label="Brand tagline" value={draft.brand.tagline} limit={180} onChange={tagline=>setDraft({...draft,brand:{...draft.brand,tagline}})}/><div className="lv-inline"><label className="lv-field">Primary color<input type="color" value={draft.brand.primaryColor} onChange={e=>setDraft({...draft,brand:{...draft.brand,primaryColor:e.target.value}})}/></label><label className="lv-field">Accent color<input type="color" value={draft.brand.accentColor} onChange={e=>setDraft({...draft,brand:{...draft.brand,accentColor:e.target.value}})}/></label></div><button onClick={()=>downloadBlob(new Blob([captionsToSrt(draft)],{type:"text/plain"}),"captions.srt")}>Export caption SRT</button></details>}
           </section>
           {isCreative && <LocalGenerationPanel projectId={projectId!} kinds={["video-draft","image","speech","transcribe"]} prepare={saveDraft} input={generationInput} onApply={applyGeneration}/>}
           <section className="lv-history">

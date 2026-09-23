@@ -25,11 +25,8 @@ import {
 } from 'lucide-react';
 import { apiFetch, getAuthToken } from '../../services/apiClient';
 import { aiClient } from '../../services/aiClient';
-import {
-  VALID_TECH_POSTER_TEMPLATES,
-  type TechPosterTemplate,
-} from '../../data/techPosterTemplates';
-import { createPosterSpecProjectData } from '../../utils/posterSpecRenderer';
+import { getFormat } from '@teckstudio/design-spec';
+import { STARTER_TEMPLATES } from '@teckstudio/design-spec/catalog';
 import { TemplatesPage } from '../templates/TemplatesPage';
 import type { TemplateProject } from '../templates/templateTypes';
 import { DESIGN_PRESETS } from '../../utils/designPresets';
@@ -442,20 +439,9 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const openTemplatePreview = (template: TechPosterTemplate) => {
-    void template;
-    setActivePage('templates');
-  };
-
-  const handleUseTechTemplate = async (template: TechPosterTemplate) => {
-    try {
-      const clonedSpec = JSON.parse(JSON.stringify(template.posterSpec));
-      const projectData = createPosterSpecProjectData(clonedSpec, template.themeId);
-      await handleCreateDesign(`${template.name} Copy`, projectData.width, projectData.height, undefined, undefined, projectData.data);
-    } catch (error) {
-      showNotification(error instanceof Error ? error.message : 'Failed to create project from template.', 'error');
-    }
-  };
+  // Featured templates are DesignSpec starters; "Use" opens the Design Studio
+  // chooser (format, theme, poster / slides / video).
+  const openDesignTemplate = (templateId: string) => navigate(`/design?template=${encodeURIComponent(templateId)}`);
 
   const handleTemplateProjectCreated = (project: TemplateProject) => {
     const savedProject: ProjectMeta = {
@@ -660,7 +646,7 @@ export const Dashboard: React.FC = () => {
       { id: 'thumbnail', title: 'AI Thumbnail Generator', description: 'Create YouTube and social thumbnails with the right dimensions.', action: 'Generate Thumbnail', icon: MonitorPlay, examples: ['YouTube cover', 'Social hook'] },
       { id: 'assistant', title: 'AI Chat', description: 'Get practical copy, layout, palette, and prompt guidance.', action: 'Start Chat', icon: Bot, examples: ['Improve copy', 'Pick colours'] },
     ];
-    const featuredTemplates = VALID_TECH_POSTER_TEMPLATES.filter((template) => template.isFeatured).slice(0, 6);
+    const featuredTemplates = STARTER_TEMPLATES.filter((template) => template.featured).slice(0, 6);
     const visibleProjects = savedDesigns.slice(0, 4);
     const primaryBrandKit = lastUpdatedBrandKit;
     const primaryBrandColor = primaryBrandKit?.colors?.find((color) => color.role === 'primary' || color.is_primary) || primaryBrandKit?.colors?.[0];
@@ -797,6 +783,7 @@ export const Dashboard: React.FC = () => {
 
         <section>
           <SectionHeader title="Quick Create" description="Poster canvases open in the editor. Lesson Video is a separate workspace that renders a silent 1080p MP4." />
+          <button type="button" onClick={() => navigate('/design')} className="mb-4 flex w-full items-center gap-4 rounded-2xl border border-violet-500/40 bg-violet-500/10 p-5 text-left text-white hover:bg-violet-500/20"><LayoutTemplate className="h-8 w-8 text-violet-300"/><span><strong className="block text-base">Design Studio</strong><span className="text-sm text-zinc-300">Tech lesson and real-estate templates as posters, slide decks or motion videos.</span></span></button>
           <button type="button" onClick={() => navigate('/create')} className="mb-4 flex w-full items-center gap-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-left text-white hover:bg-emerald-500/20"><Palette className="h-8 w-8 text-emerald-300"/><span><strong className="block text-base">Creative Studio</strong><span className="text-sm text-zinc-300">Branded posters, products and services, social formats and A4/A3 exports.</span></span></button>
           <button type="button" onClick={createLessonVideo} disabled={creatingLessonVideo} className="mb-4 flex w-full items-center gap-4 rounded-2xl border border-violet-500/40 bg-violet-500/10 p-5 text-left text-white transition-all hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60">
             <Film className="h-8 w-8 shrink-0 text-violet-300" />
@@ -831,11 +818,11 @@ export const Dashboard: React.FC = () => {
         </section>
 
         <section>
-          <SectionHeader title="Start with a Template" description="Choose a professionally designed layout and customize every section." action={<button type="button" onClick={() => setActivePage('templates')} className="text-sm font-semibold text-[#C4B5FD] hover:text-[#E9D5FF] transition-colors cursor-pointer">View All Templates</button>} />
+          <SectionHeader title="Start with a Template" description="Posters, slide decks and motion videos for tech lessons and property marketing." action={<button type="button" onClick={() => navigate('/design')} className="text-sm font-semibold text-[#C4B5FD] hover:text-[#E9D5FF] transition-colors cursor-pointer">View All Templates</button>} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {featuredTemplates.map((template) => (
               <article key={template.id} className="flex h-full flex-col rounded-2xl border border-white/[0.10] p-3 transition-all hover:border-[rgba(139,92,246,0.50)]" style={{ background: '#12121B' }}>
-                <button type="button" onClick={() => openTemplatePreview(template)} className="group block overflow-hidden rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer">
+                <button type="button" onClick={() => openDesignTemplate(template.id)} className="group block overflow-hidden rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-violet-400/40 cursor-pointer">
                   <div className="aspect-[4/5] overflow-hidden rounded-xl border border-white/[0.10] bg-[#0E0E16]">
                     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[rgba(139,92,246,0.25)] to-[rgba(168,85,247,0.20)] p-3 transition-transform group-hover:scale-[1.02]">
                       <LayoutTemplate className="h-9 w-9 text-[#C4B5FD]" />
@@ -844,8 +831,8 @@ export const Dashboard: React.FC = () => {
                 </button>
                 <div className="mt-3 flex flex-1 flex-col">
                   <h3 className="truncate text-sm font-semibold text-[#F8FAFC]">{template.name}</h3>
-                  <p className="mt-1 truncate text-xs text-[#71717F]">{template.category} · {template.aspectRatio}</p>
-                  <div className="mt-auto flex gap-2 pt-3"><button type="button" onClick={() => openTemplatePreview(template)} className="h-9 flex-1 rounded-lg border border-white/[0.10] text-xs font-semibold text-[#A8A8B8] hover:border-white/[0.18] hover:text-white transition-all cursor-pointer">Preview</button><button type="button" onClick={() => handleUseTechTemplate(template)} className="h-9 flex-1 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer" style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>Use</button></div>
+                  <p className="mt-1 truncate text-xs text-[#71717F]">{template.category} · {template.spec.pages.length > 1 ? `${template.spec.pages.length} slides` : getFormat(template.spec.format)?.label}</p>
+                  <div className="mt-auto flex gap-2 pt-3"><button type="button" onClick={() => navigate('/design')} className="h-9 flex-1 rounded-lg border border-white/[0.10] text-xs font-semibold text-[#A8A8B8] hover:border-white/[0.18] hover:text-white transition-all cursor-pointer">Browse</button><button type="button" onClick={() => openDesignTemplate(template.id)} className="h-9 flex-1 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer" style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>Use</button></div>
                 </div>
               </article>
             ))}

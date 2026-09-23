@@ -10,6 +10,7 @@ import {
   createTeckStudioTimelineSchema,
 } from '../../utils/timelineExport';
 import { removeStrayConnectorMarkers } from '../../utils/posterLayoutTools';
+import { exportPagesPdf } from '../../utils/exportPagesPdf';
 
 interface ExportSettings {
   format: 'png' | 'jpg' | 'svg' | 'pdf';
@@ -39,7 +40,9 @@ const FORMAT_OPTIONS = [
 ];
 
 export const EnhancedExportPanel: React.FC = () => {
-  const { canvas, projectName } = useEditorStore();
+  const { canvas, projectName, pages, syncActivePage } = useEditorStore();
+  const [allPages, setAllPages] = useState(true);
+  const [pageProgress, setPageProgress] = useState('');
   const [settings, setSettings] = useState<ExportSettings>({
     format: 'png',
     quality: 0.95,
@@ -74,8 +77,32 @@ export const EnhancedExportPanel: React.FC = () => {
     document.body.removeChild(link);
   }, []);
 
+  const handleAllPagesPdf = async () => {
+    setExporting(true);
+    setError('');
+    setExported(false);
+    try {
+      const synced = syncActivePage();
+      await exportPagesPdf(synced, {
+        fileName: projectName || 'design',
+        onProgress: (done, total) => setPageProgress(`${done}/${total}`),
+      });
+      setExported(true);
+      setTimeout(() => setExported(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF export failed');
+    } finally {
+      setPageProgress('');
+      setExporting(false);
+    }
+  };
+
   const handleExport = async () => {
     if (!canvas) return;
+    if (settings.format === 'pdf' && allPages && pages.length > 1) {
+      await handleAllPagesPdf();
+      return;
+    }
     setExporting(true);
     setError('');
     setExported(false);
@@ -353,6 +380,18 @@ export const EnhancedExportPanel: React.FC = () => {
               className="accent-violet-500"
             />
             <span className="text-[10px] text-zinc-300">Transparent background</span>
+          </label>
+        )}
+
+        {settings.format === 'pdf' && pages.length > 1 && (
+          <label className="flex items-center gap-2 py-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allPages}
+              onChange={(e) => setAllPages(e.target.checked)}
+              className="accent-violet-500"
+            />
+            <span className="text-[10px] text-zinc-300">All {pages.length} pages in one PDF (slide deck / handout){pageProgress && ` · ${pageProgress}`}</span>
           </label>
         )}
 

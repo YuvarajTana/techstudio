@@ -7,6 +7,7 @@ import { apiFetch, getAuthToken } from './services/apiClient';
 
 const LessonVideoEditor = lazy(() => import('./features/lesson-video/LessonVideoEditor'));
 const CreativeStudio = lazy(() => import('./features/creative/CreativeStudio'));
+const DesignStudio = lazy(() => import('./features/design/DesignStudio'));
 
 class TeckstudioErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -126,6 +127,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/login" element={<AuthPages />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/design" element={<ProtectedRoute><Suspense fallback={<p style={{padding:40}}>Loading Design Studio…</p>}><DesignStudio /></Suspense></ProtectedRoute>} />
           <Route path="/create" element={<ProtectedRoute><Suspense fallback={<p style={{padding:40}}>Loading Creative Studio…</p>}><CreativeStudio /></Suspense></ProtectedRoute>} />
           <Route path="/lesson-video/:projectId" element={<ProtectedRoute><Suspense fallback={<p style={{padding:40}}>Loading lesson workspace…</p>}><LessonVideoEditor /></Suspense></ProtectedRoute>} />
           <Route path="/video/:projectId" element={<ProtectedRoute><Suspense fallback={<p style={{padding:40}}>Loading video workspace…</p>}><LessonVideoEditor /></Suspense></ProtectedRoute>} />
