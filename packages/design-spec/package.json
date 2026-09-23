@@ -1,0 +1,17 @@
+{
+  "name": "@teckstudio/design-spec",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Data-driven poster, slide deck and video layouts shared by the editor (Fabric) and the video renderer (Remotion).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fabric": "./src/fabric/index.ts",
+    "./video": "./src/video/index.ts",
+    "./catalog": "./src/catalog/index.ts",
+    "./icons": "./src/icons/index.ts"
+  },
+  "dependencies": {
+    "@teckstudio/lesson-video": "*"
+  }
+}

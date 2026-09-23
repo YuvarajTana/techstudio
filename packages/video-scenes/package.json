@@ -12,7 +12,10 @@
     "remotion": "4.0.523"
   },
   "dependencies": {
-    "@teckstudio/lesson-video": "*",
-    "@fontsource/inter": "^5.2.0"
+    "@fontsource/inter": "^5.2.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/outfit": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
+    "@teckstudio/lesson-video": "*"
   }
 }

@@ -11,17 +11,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/outfit": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
+    "@remotion/player": "4.0.523",
+    "@teckstudio/lesson-video": "*",
+    "@teckstudio/video-scenes": "*",
     "fabric": "^5.3.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.22.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
-    "zustand": "^5.0.14",
-    "@teckstudio/lesson-video": "*",
-    "@teckstudio/video-scenes": "*",
-    "@remotion/player": "4.0.523",
-    "remotion": "4.0.523"
+    "remotion": "4.0.523",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
