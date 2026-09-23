@@ -2059,7 +2059,7 @@
                   "type": "string",
                   "pattern": "^[A-Za-z0-9_-]{1,80}$"
                 },
-                "minItems": 1,
+                "minItems": 0,
                 "maxItems": 8
               },
               "facts": {

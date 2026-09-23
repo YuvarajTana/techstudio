@@ -171,6 +171,12 @@ export interface VideoPlan {
   templateVersion: string;
 }
 const structure = new Ajv({ allErrors: true, strict: false }).compile(schema);
+/** Short human label for a scene (title, question prompt or type). */
+export function sceneLabel(scene: CreativeScene | LessonScene): string {
+  if ("title" in scene && scene.title) return scene.title;
+  if ("prompt" in scene) return scene.prompt;
+  return scene.type;
+}
 /** Frames a scene overlaps the one before it (0 for the first scene). */
 export function transitionOverlap(scenes: CreativeScene[], index: number): number {
   return index > 0 ? (scenes[index].transitionIn?.durationFrames ?? 0) : 0;

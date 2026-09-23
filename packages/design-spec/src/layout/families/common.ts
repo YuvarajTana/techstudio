@@ -52,14 +52,18 @@ export function factRow(b: LayoutBuilder, area: Box, facts: FactsValue, opts: { 
   if (!chips.length) return 0;
   const h = Math.min(area.h, b.s(opts.size ?? 52));
   const gap = b.s(18);
-  const w = (area.w - gap * (chips.length - 1)) / chips.length;
+  // Wrap onto two rows when chips would be too narrow to read.
+  const perRow = (area.w - gap * (chips.length - 1)) / chips.length < b.s(190) ? Math.ceil(chips.length / 2) : chips.length;
+  const rows = Math.ceil(chips.length / perRow);
+  const w = (area.w - gap * (perRow - 1)) / perRow;
   chips.forEach((chip, i) => {
-    const x = area.x + i * (w + gap);
+    const x = area.x + (i % perRow) * (w + gap);
+    const y = area.y + Math.floor(i / perRow) * (h + b.s(10));
     const iconSize = h * 0.72;
-    b.icon('fact-icon', `facts.${chip.key}`, chip.icon, { x, y: area.y + (h - iconSize) / 2, w: iconSize, h: iconSize }, opts.iconColor ?? b.color.primary);
-    b.text('fact', `facts.${chip.key}`, chip.text, { x: x + iconSize + b.s(10), y: area.y + h * 0.18, w: Math.max(1, w - iconSize - b.s(10)), h: h * 0.7 }, { size: 26, minSize: 13, weight: 600, color: opts.color ?? b.color.text, lineHeight: 1.1 });
+    b.icon('fact-icon', `facts.${chip.key}`, chip.icon, { x, y: y + (h - iconSize) / 2, w: iconSize, h: iconSize }, opts.iconColor ?? b.color.primary);
+    b.text('fact', `facts.${chip.key}`, chip.text, { x: x + iconSize + b.s(10), y: y + h * 0.18, w: Math.max(1, w - iconSize - b.s(10)), h: h * 0.7 }, { size: 26, minSize: 13, weight: 600, color: opts.color ?? b.color.text, lineHeight: 1.1 });
   });
-  return h;
+  return rows * h + (rows - 1) * b.s(10);
 }
 
 /** Bulleted list with a check/marker icon. Returns height used. */

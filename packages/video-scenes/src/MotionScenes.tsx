@@ -148,6 +148,12 @@ export function ListingScene({ scene, theme, assetSources, portrait, stage, dura
   return (
     <div style={{ display: "grid", gridTemplateColumns: portrait ? "1fr" : "1.25fr 1fr", gap: portrait ? 36 : 56 }}>
       <div style={{ position: "relative", height: photoHeight, borderRadius: 28, overflow: "hidden", background: theme.surface }}>
+        {photos.length === 0 && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18, color: theme.muted, fontSize: 30, border: `2px dashed ${theme.border}`, borderRadius: 28 }}>
+            <Icon id="photo" size={96} color={theme.muted} />
+            Add property photos
+          </div>
+        )}
         {photos.map((src, i) => {
           const local = frame - i * segment;
           const opacity = i === 0 ? 1 : interpolate(local, [-fadeFrames, 0], [0, 1], clamp);
