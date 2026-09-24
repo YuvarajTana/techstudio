@@ -649,6 +649,9 @@ interface EditorState {
   movePage: (pageId: string, direction: 'up' | 'down') => void;
   renamePage: (pageId: string, name: string) => void;
   switchPage: (pageId: string) => Promise<void>;
+  /** Replace the active page with new Fabric JSON (e.g. a DesignSpec re-layout) and save. */
+  replaceActivePageData: (data: string) => Promise<void>;
+  setCreativeContext: (context: Record<string, unknown> | null) => void;
   syncAllPages: () => Promise<EditorPage[]>;
   addPageToTimeline: (pageId: string) => void;
   applyTechnicalReelPreset: () => Promise<void>;
@@ -1494,6 +1497,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     tlManager.captureBaseStates();
     return pages;
   },
+
+  replaceActivePageData: async (data) => {
+    const canvas = get().canvas;
+    if (!canvas) return;
+    const { activePageId } = get();
+    const now = new Date().toISOString();
+    set({ pages: get().pages.map((page) => (page.id === activePageId ? { ...page, data, updatedAt: now } : page)) });
+    await loadPageCanvas(canvas, data);
+    set({ selectedObject: null, selectedObjectId: null, selectedPage: false });
+    get().saveHistory();
+  },
+
+  setCreativeContext: (context) => set({ creativeContext: context }),
 
   switchPage: async (pageId) => {
     if (pageId === get().activePageId) return;
