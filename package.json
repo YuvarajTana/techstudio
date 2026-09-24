@@ -15,15 +15,22 @@
     "video:worker": "node --import tsx renderer/src/worker.ts",
     "video:studio": "npm run studio --workspace @teckstudio/renderer",
     "test:video": "node --import tsx --test packages/lesson-video/tests/*.test.ts renderer/src/*.test.ts",
-    "test:lesson-ui": "node scripts/test_lesson_ui.mjs --actual-player"
+    "test:lesson-ui": "node scripts/test_lesson_ui.mjs --actual-player",
+    "test:design": "node --import tsx --test packages/design-spec/tests/*.test.ts",
+    "verify:design": "node --import tsx scripts/verify_design_posters.ts",
+    "icons:vendor": "node scripts/vendor-icons.mjs",
+    "test": "npm run test:design && npm run test:video",
+    "verify:motion": "node --import tsx scripts/verify_motion_video.ts"
   },
   "devDependencies": {
-    "tsx": "^4.20.0",
-    "typescript": "~6.0.2",
+    "@tabler/icons": "^3.48.0",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "esbuild": "0.28.2",
     "jsdom": "19.0.0",
-    "esbuild": "0.28.2"
+    "simple-icons": "^16.32.0",
+    "tsx": "^4.20.0",
+    "typescript": "~6.0.2"
   }
 }

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { Fragment, useMemo } from "react";
 import {
   AbsoluteFill,
   Audio,
@@ -8,6 +8,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { TransitionSeries } from "@remotion/transitions";
 import {
   compileVideo,
   creativeSceneDuration,
@@ -17,20 +18,24 @@ import {
   type DiagramScene,
 } from "@teckstudio/lesson-video";
 import { useFonts } from "./index";
+import { entranceProgress, revealStyle, staggerDelay, transitionPresentation, transitionTiming } from "./motion";
+import { CodeScene, ListingScene, LogoScene, SlideScene, StatsScene } from "./MotionScenes";
+import { requiredFonts, sceneTheme, stageFor, type SceneTheme } from "./theme";
 
 export interface CreativeVideoProps {
   spec: CreativeVideoSpec;
   assetSources?: Record<string, string>;
 }
-const paper = "#f7f5ef";
 function DiagramVisual({
   scene,
   color,
   portrait,
+  theme,
 }: {
   scene: DiagramScene;
   color: string;
   portrait: boolean;
+  theme: SceneTheme;
 }) {
   const frame = useCurrentFrame(),
     step = diagramStepAtFrame(scene, frame);
@@ -92,7 +97,7 @@ function DiagramVisual({
             <foreignObject x={x - 135} y={y - 36} width={270} height={72}>
               <div
                 style={{
-                  background: paper,
+                  background: theme.background,
                   textAlign: "center",
                   fontSize: 22,
                   lineHeight: 1.25,
@@ -118,7 +123,15 @@ function DiagramVisual({
               width={248}
               height={110}
               rx={22}
-              fill={unavailable ? "#fff0e8" : active ? "#e8edf2" : "white"}
+              fill={
+                unavailable
+                  ? "#fff0e8"
+                  : active
+                    ? theme.themed
+                      ? theme.border
+                      : "#e8edf2"
+                    : theme.surface
+              }
               stroke={unavailable ? "#b45309" : color}
               strokeWidth={active ? 4 : 1}
             />
@@ -139,7 +152,7 @@ function DiagramVisual({
                   lineHeight: 1.2,
                   textAlign: "center",
                   fontWeight: 700,
-                  color,
+                  color: theme.themed ? theme.text : color,
                   overflowWrap: "anywhere",
                 }}
               >
@@ -162,23 +175,39 @@ function CreativeSceneView({
   spec,
   assetSources,
   index,
+  theme,
+  stage,
 }: {
   scene: CreativeScene;
   spec: CreativeVideoSpec;
   assetSources: Record<string, string>;
   index: number;
+  theme: SceneTheme;
+  stage: ReturnType<typeof stageFor>;
 }) {
   const frame = useCurrentFrame(),
-    { width, height } = useVideoConfig(),
-    portrait = height > width;
-  const { primaryColor: ink, accentColor: accent } = spec.brand;
+    { fps } = useVideoConfig(),
+    portrait = stage.portrait;
+  const ink = theme.text,
+    accent = theme.accent;
   const margin = portrait ? 78 : 110;
-  const entrance = interpolate(frame, [0, 15], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const entrance = entranceProgress(frame, fps, scene.easing);
   const duration = creativeSceneDuration(scene),
     motion = scene.motion ?? "fade";
+  const itemStyle = (i: number): React.CSSProperties =>
+    scene.stagger
+      ? revealStyle(entranceProgress(frame, fps, scene.easing ?? "ease", staggerDelay(i)))
+      : {};
+  const sceneProps = { spec, theme, assetSources, portrait, stage, duration };
+  if (scene.type === "logo")
+    return (
+      <>
+        <LogoScene scene={scene} {...sceneProps} />
+        {scene.narration?.assetId && assetSources[scene.narration.assetId] && (
+          <Audio src={assetSources[scene.narration.assetId]} />
+        )}
+      </>
+    );
   const title = "title" in scene ? scene.title : scene.prompt;
   const heading: React.CSSProperties = {
     fontSize: title.length > 64 ? (portrait ? 52 : 56) : portrait ? 66 : 70,
@@ -186,6 +215,7 @@ function CreativeSceneView({
     letterSpacing: -2.5,
     margin: "0 0 34px",
     overflowWrap: "anywhere",
+    fontFamily: theme.heading,
   };
   const body: React.CSSProperties = {
     fontSize: portrait ? 34 : 34,
@@ -195,8 +225,8 @@ function CreativeSceneView({
   };
   const card: React.CSSProperties = {
     padding: portrait ? 32 : 35,
-    background: "white",
-    border: "1px solid #dadbd8",
+    background: theme.surface,
+    border: `1px solid ${theme.border}`,
     borderRadius: 24,
   };
   const list = (items: string[], numbered = false) => (
@@ -216,6 +246,7 @@ function CreativeSceneView({
             gap: 26,
             alignItems: "center",
             ...body,
+            ...itemStyle(i),
           }}
         >
           <span
@@ -239,10 +270,10 @@ function CreativeSceneView({
   return (
     <AbsoluteFill
       style={{
-        background: paper,
+        background: theme.background,
         color: ink,
         padding: `${portrait ? 110 : 70}px ${margin}px`,
-        fontFamily: "Inter, sans-serif",
+        fontFamily: theme.body,
       }}
     >
       <header
@@ -404,7 +435,7 @@ function CreativeSceneView({
               style={{
                 display: "inline-block",
                 background: accent,
-                color: "white",
+                color: theme.onAccent,
                 padding: "28px 40px",
                 borderRadius: 18,
                 fontSize: 42,
@@ -420,14 +451,19 @@ function CreativeSceneView({
         {scene.type === "diagram" && (
           <>
             <div style={{ height: portrait ? 1000 : 435 }}>
-              <DiagramVisual scene={scene} color={accent} portrait={portrait} />
+              <DiagramVisual
+                scene={scene}
+                color={accent}
+                portrait={portrait}
+                theme={theme}
+              />
             </div>
             <p
               style={{
                 ...body,
                 fontSize: portrait ? 32 : 30,
                 padding: 24,
-                background: "white",
+                background: theme.surface,
                 borderLeft: `5px solid ${accent}`,
               }}
             >
@@ -435,6 +471,10 @@ function CreativeSceneView({
             </p>
           </>
         )}
+        {scene.type === "slide" && <SlideScene scene={scene} {...sceneProps} />}
+        {scene.type === "code" && <CodeScene scene={scene} {...sceneProps} />}
+        {scene.type === "listing" && <ListingScene scene={scene} {...sceneProps} />}
+        {scene.type === "stats" && <StatsScene scene={scene} {...sceneProps} />}
       </section>
       {scene.narration?.assetId && assetSources[scene.narration.assetId] && (
         <Audio src={assetSources[scene.narration.assetId]} />
@@ -480,26 +520,65 @@ function CreativeSceneView({
   );
 }
 export function CreativeVideo({ spec, assetSources = {} }: CreativeVideoProps) {
-  useFonts();
+  const fonts = useMemo(() => requiredFonts(spec), [spec]);
+  useFonts(fonts);
   const plan = useMemo(() => compileVideo(spec), [spec]);
+  const { width, height } = useVideoConfig();
+  const theme = useMemo(() => sceneTheme(spec), [spec]);
+  const stage = stageFor(width, height);
+  // Scenes are laid out on the stage, then scaled to the output (scale 1 for 16:9 / 9:16).
+  const view = (scene: CreativeScene, index: number) => (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: "absolute",
+          width: stage.width,
+          height: stage.height,
+          transform: stage.scale === 1 ? undefined : `scale(${stage.scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        <CreativeSceneView
+          scene={scene}
+          spec={spec}
+          assetSources={assetSources}
+          index={index}
+          theme={theme}
+          stage={stage}
+        />
+      </div>
+    </AbsoluteFill>
+  );
+  const transitions = spec.scenes.some((scene, i) => i > 0 && scene.transitionIn);
   return (
-    <AbsoluteFill
-      style={{ fontFamily: "Inter, sans-serif", background: paper }}
-    >
-      {spec.scenes.map((scene, index) => (
-        <Sequence
-          key={scene.id}
-          from={plan.scenes[index].startFrame}
-          durationInFrames={creativeSceneDuration(scene)}
-        >
-          <CreativeSceneView
-            scene={scene}
-            spec={spec}
-            assetSources={assetSources}
-            index={index}
-          />
-        </Sequence>
-      ))}
+    <AbsoluteFill style={{ fontFamily: theme.body, background: theme.background }}>
+      {transitions ? (
+        <TransitionSeries>
+          {spec.scenes.map((scene, index) => (
+            <Fragment key={scene.id}>
+              {index > 0 && scene.transitionIn && (
+                <TransitionSeries.Transition
+                  presentation={transitionPresentation(scene.transitionIn, width, height)}
+                  timing={transitionTiming(scene.transitionIn)}
+                />
+              )}
+              <TransitionSeries.Sequence durationInFrames={creativeSceneDuration(scene)}>
+                {view(scene, index)}
+              </TransitionSeries.Sequence>
+            </Fragment>
+          ))}
+        </TransitionSeries>
+      ) : (
+        spec.scenes.map((scene, index) => (
+          <Sequence
+            key={scene.id}
+            from={plan.scenes[index].startFrame}
+            durationInFrames={creativeSceneDuration(scene)}
+          >
+            {view(scene, index)}
+          </Sequence>
+        ))
+      )}
       {spec.soundtrack && assetSources[spec.soundtrack.assetId] && (
         <Audio
           loop

@@ -10,6 +10,9 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { getPosterTrack } from '../../types/timeline';
+import { exportPagesPdf } from '../../utils/exportPagesPdf';
+import { useNavigate } from 'react-router-dom';
+import { createDesignVideo, designSpecFromContext } from '../../features/design/designVideo';
 
 export const PagesPanel: React.FC = () => {
   const {
@@ -24,7 +27,38 @@ export const PagesPanel: React.FC = () => {
     switchPage,
     addPageToTimeline,
     removeTimelineClip,
+    syncActivePage,
+    projectName,
+    creativeContext,
   } = useEditorStore();
+  const [pdfStatus, setPdfStatus] = useState('');
+  const navigate = useNavigate();
+  const designSpec = designSpecFromContext(creativeContext);
+  const [videoStatus, setVideoStatus] = useState('');
+
+  // Built from the template content the design started with; canvas edits are not read back.
+  const makeVideo = async () => {
+    if (!designSpec) return;
+    setVideoStatus('Creating…');
+    try {
+      navigate(`/video/${await createDesignVideo(designSpec)}`);
+    } catch (error) {
+      setVideoStatus(error instanceof Error ? error.message : 'Could not create the video.');
+    }
+  };
+
+  const exportDeckPdf = async () => {
+    setPdfStatus('Preparing…');
+    try {
+      await exportPagesPdf(syncActivePage(), {
+        fileName: projectName || 'slides',
+        onProgress: (done, total) => setPdfStatus(`Rendering ${done}/${total}…`),
+      });
+      setPdfStatus('');
+    } catch (error) {
+      setPdfStatus(error instanceof Error ? error.message : 'PDF export failed.');
+    }
+  };
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [pendingDeletePageId, setPendingDeletePageId] = useState<string | null>(null);
@@ -46,8 +80,8 @@ export const PagesPanel: React.FC = () => {
     <div className="relative flex h-full flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-zinc-100">Pages</h3>
-          <p className="text-[9px] text-zinc-500">Each page can become a video scene.</p>
+          <h3 className="text-sm font-bold text-zinc-100">{pages.length > 1 ? `Pages · ${pages.length} slides` : 'Pages'}</h3>
+          <p className="text-[9px] text-zinc-500">Pages work as slides, handout pages or video scenes.</p>
         </div>
         <button
           type="button"
@@ -58,6 +92,34 @@ export const PagesPanel: React.FC = () => {
           <Plus className="h-4 w-4" />
         </button>
       </div>
+
+      {pages.length > 1 && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void exportDeckPdf()}
+            disabled={pdfStatus.endsWith('…')}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-2 py-1.5 text-[10px] font-semibold text-zinc-300 transition-colors hover:border-violet-500/50 hover:text-white disabled:opacity-60"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            {pdfStatus.endsWith('…') ? pdfStatus : 'Export all as PDF'}
+          </button>
+        </div>
+      )}
+      {pdfStatus && !pdfStatus.endsWith('…') && <p className="text-[10px] text-red-300" role="alert">{pdfStatus}</p>}
+      {designSpec && (
+        <button
+          type="button"
+          onClick={() => void makeVideo()}
+          disabled={videoStatus === 'Creating…'}
+          title="Creates a motion video from this template's content (text edits made on the canvas are not included)."
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-violet-500/40 px-2 py-1.5 text-[10px] font-semibold text-violet-200 transition-colors hover:bg-violet-500/10 disabled:opacity-60"
+        >
+          <Clapperboard className="h-3.5 w-3.5" />
+          {videoStatus === 'Creating…' ? videoStatus : 'Make motion video from template'}
+        </button>
+      )}
+      {videoStatus && videoStatus !== 'Creating…' && <p className="text-[10px] text-red-300" role="alert">{videoStatus}</p>}
 
       <div className="flex max-h-[520px] flex-col gap-2 overflow-y-auto">
         {pages.map((page, index) => {

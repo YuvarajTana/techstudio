@@ -27,6 +27,10 @@ the [product deep dive and improvement plan](docs/PRODUCT_DEEP_DIVE.md), and the
 [teaching playbook](docs/TEACHING_PLAYBOOK.md). The [visual guide](frontend/public/guide.html)
 opens as a standalone HTML document or at `http://127.0.0.1:5173/guide.html` while running locally.
 
+**Design Studio (September 2026).** One template → poster, slide deck or motion video, with
+tech-teaching and real-estate starters, 122 vendored icons, self-hosted fonts, multi-page PDF and
+Remotion transitions/new scene types. See [Design Studio](docs/DESIGN_STUDIO.md).
+
 **Lesson Video is now implemented with Remotion.** Create structured lessons, edit four scene
 types, preview, save and render a silent 1080p MP4 locally. Use **Quick Create → Create Lesson Video**
 or render JSON from the CLI. The [usage guide](docs/REMOTION_LOCAL_GUIDE.md) includes visual flows,

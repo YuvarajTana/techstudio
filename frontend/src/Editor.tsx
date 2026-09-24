@@ -38,6 +38,9 @@ const App: React.FC = () => {
   const selectedObject = useEditorStore((state) => state.selectedObject);
   const saveError = useEditorStore((state) => state.projectSaveError);
   const creativeContext = useEditorStore((state) => state.creativeContext);
+  // DesignSpec projects also store a creative_context (the spec), but they are
+  // edited like any canvas design; only Creative Studio posters get that panel.
+  const isCreativePoster = Boolean(creativeContext) && creativeContext?.schema !== 'design-context/v1';
   const [rightPanel, setRightPanel] = useState<RightPanel>('ai');
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -178,7 +181,7 @@ const App: React.FC = () => {
           {!rightPanelCollapsed && <div className="flex-1 min-h-0 overflow-hidden">
             {rightPanel === 'ai' && (
               <div className="teckstudio-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain p-3 pb-24">
-                {creativeContext ? <CreativePosterPanel /> : <AIAssistant />}
+                {isCreativePoster ? <CreativePosterPanel /> : <AIAssistant />}
               </div>
             )}
             {rightPanel === 'colors' && (

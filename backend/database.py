@@ -822,6 +822,13 @@ def init_db():
     _seed_default_categories()
     if _has_active_public_assets():
         print("Asset seed skipped: active public assets already exist.")
+        # Derived photo sizes are not tracked in git; rebuild missing ones so
+        # existing asset rows keep resolving after a fresh clone.
+        try:
+            from curated_asset_seed import ensure_all_reference_derivatives
+            ensure_all_reference_derivatives()
+        except Exception as exc:  # never block startup on media derivation
+            print(f"Reference derivative check failed: {exc}")
     else:
         _seed_default_assets()
 
@@ -1270,6 +1277,7 @@ def _seed_default_assets(category_slug: str | None = None, limit_per_category: i
         assets = image_assets if normalized_category_slug else image_assets + support_assets
 
         for asset in assets:
+            provenance = {}
             if len(asset) == 6:
                 asset_id, name, category, tags, file_data, file_type = asset
                 source = "application-seed"
@@ -1283,7 +1291,10 @@ def _seed_default_assets(category_slug: str | None = None, limit_per_category: i
                 local_storage_path = None
             else:
                 thumbnail_override = None
-                if len(asset) == 16:
+                # Optional 17th element: provenance overrides (author, source page, attribution).
+                provenance = asset[16] if len(asset) == 17 else {}
+                if len(asset) >= 16:
+                    asset = asset[:16]
                     (
                         asset_id, name, category, tags, file_data, file_type,
                         source, source_url, asset_license, license_url,
@@ -1310,10 +1321,11 @@ def _seed_default_assets(category_slug: str | None = None, limit_per_category: i
             source_asset_id = asset_id
             source_url = source_url or f"local://teckstudio/assets/{asset_id}"
             source_page_url = source_url
-            author_name = "TECKSTUDIO"
-            author_url = "local://teckstudio"
+            author_name = provenance.get("author_name") or "TECKSTUDIO"
+            author_url = provenance.get("author_url") or "local://teckstudio"
+            source_page_url = provenance.get("source_page_url") or source_page_url
             license_name = asset_license
-            attribution_required = False
+            attribution_required = bool(provenance.get("attribution_required", False))
             attribution_text = attribution
             commercial_use_allowed = True
             modification_allowed = True

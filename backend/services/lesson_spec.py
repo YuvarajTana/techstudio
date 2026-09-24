@@ -17,6 +17,28 @@ CREATIVE_SCHEMA = json.loads(
 CREATIVE_VALIDATOR = Draft7Validator(CREATIVE_SCHEMA)
 
 
+# Output sizes per creative-video preset (mirrors PRESET_SIZES in creative.ts).
+PRESET_SIZES = {
+    "landscape-1080p": (1920, 1080),
+    "portrait-1080p": (1080, 1920),
+    "square-1080": (1080, 1080),
+    "portrait-4x5": (1080, 1350),
+}
+
+
+def transition_overlap(scenes, index):
+    """Frames scene `index` overlaps the previous scene (0 for the first)."""
+    if index == 0:
+        return 0
+    return (scenes[index].get("transitionIn") or {}).get("durationFrames", 0)
+
+
+def compiled_total(scenes):
+    return sum(
+        scene_duration(s) - transition_overlap(scenes, i) for i, s in enumerate(scenes)
+    )
+
+
 def scene_duration(scene):
     narration = scene.get("narration") or {}
     return max(
@@ -59,12 +81,51 @@ def validate_spec(value):
             asset_ref(value["brand"]["logoAssetId"], "image")
         if value.get("soundtrack"):
             asset_ref(value["soundtrack"]["assetId"], "audio")
-        duration = sum(scene_duration(s) for s in value["scenes"])
+        scenes = value["scenes"]
+        for i, scene in enumerate(scenes):
+            transition = scene.get("transitionIn")
+            if i == 0 or not transition:
+                continue
+            previous, t = scenes[i - 1], transition["durationFrames"]
+            if t > min(scene_duration(previous), scene_duration(scene)) // 2:
+                raise ValueError(
+                    f"/scenes/{i}/transitionIn: must be at most half of this and the previous scene."
+                )
+            narration = previous.get("narration") or {}
+            if narration.get("assetId") and scene_duration(previous) - t < narration.get(
+                "durationFrames", 0
+            ):
+                raise ValueError(
+                    f"/scenes/{i}/transitionIn: would cut off the previous scene's narration."
+                )
+        duration = compiled_total(scenes)
         if not 450 <= duration <= 2700:
             raise ValueError("Creative videos must be between 15 and 90 seconds.")
         for scene in value["scenes"]:
             if scene.get("imageAssetId"):
                 asset_ref(scene["imageAssetId"], "image")
+            for photo in scene.get("photoAssetIds", []):
+                asset_ref(photo, "image")
+            if len(set(scene.get("photoAssetIds", []))) != len(
+                scene.get("photoAssetIds", [])
+            ):
+                raise ValueError("Listing photos must be different.")
+            if scene["type"] == "code":
+                lines = scene["code"].count("\n") + 1
+                if lines > 24:
+                    raise ValueError("Keep code to 24 lines per scene.")
+                previous_frame = -1
+                for highlight in scene.get("highlights", []):
+                    if (
+                        highlight["atFrame"] <= previous_frame
+                        or highlight["atFrame"] >= scene_duration(scene)
+                        or highlight["fromLine"] > highlight["toLine"]
+                        or highlight["toLine"] > lines
+                    ):
+                        raise ValueError(
+                            "Code highlights must increase in time and reference existing lines."
+                        )
+                    previous_frame = highlight["atFrame"]
             narration = scene.get("narration") or {}
             if narration.get("assetId"):
                 asset_ref(narration["assetId"], "audio")
@@ -87,7 +148,12 @@ def validate_spec(value):
                         "Captions must be ordered, non-overlapping and within their scene."
                     )
                 previous_end = cue["endFrame"]
-    if sum(s["durationFrames"] for s in value["scenes"]) > 18000:
+    total = (
+        compiled_total(value["scenes"])
+        if creative
+        else sum(s["durationFrames"] for s in value["scenes"])
+    )
+    if total > 18000:
         raise ValueError("/scenes: total duration exceeds 10 minutes.")
     for i, scene in enumerate(value["scenes"]):
         if scene["type"] == "question" and scene["revealAtFrame"] >= scene_duration(
@@ -131,17 +197,16 @@ def validate_spec(value):
 def compile_spec(spec):
     creative = spec.get("schema") == "creative-video/v2"
     position, scenes = 0, []
-    for scene in spec["scenes"]:
-        start = position
-        position += scene_duration(scene)
+    for i, scene in enumerate(spec["scenes"]):
+        start = position - (transition_overlap(spec["scenes"], i) if creative else 0)
+        position = start + scene_duration(scene)
         scenes.append({"id": scene["id"], "startFrame": start, "endFrame": position})
+    width, height = (
+        PRESET_SIZES[spec["output"]["preset"]] if creative else (1920, 1080)
+    )
     return {
-        "width": (
-            1080 if creative and spec["output"]["preset"] == "portrait-1080p" else 1920
-        ),
-        "height": (
-            1920 if creative and spec["output"]["preset"] == "portrait-1080p" else 1080
-        ),
+        "width": width,
+        "height": height,
         "fps": 30,
         "durationInFrames": position,
         "scenes": scenes,
