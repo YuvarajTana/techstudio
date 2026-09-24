@@ -12,7 +12,7 @@ import { useEditorStore } from '../../store/useEditorStore';
 import { getPosterTrack } from '../../types/timeline';
 import { exportPagesPdf } from '../../utils/exportPagesPdf';
 import { useNavigate } from 'react-router-dom';
-import { createDesignVideo, designSpecFromContext } from '../../features/design/designVideo';
+import { createDesignVideoFromPages, designSpecFromContext } from '../../features/design/designVideo';
 
 export const PagesPanel: React.FC = () => {
   const {
@@ -36,12 +36,12 @@ export const PagesPanel: React.FC = () => {
   const designSpec = designSpecFromContext(creativeContext);
   const [videoStatus, setVideoStatus] = useState('');
 
-  // Built from the template content the design started with; canvas edits are not read back.
+  // Canvas text and photo edits are read back into the design before mapping to scenes.
   const makeVideo = async () => {
     if (!designSpec) return;
     setVideoStatus('Creating…');
     try {
-      navigate(`/video/${await createDesignVideo(designSpec)}`);
+      navigate(`/video/${await createDesignVideoFromPages(designSpec, syncActivePage(), typeof creativeContext?.template_id === 'string' ? creativeContext.template_id : undefined)}`);
     } catch (error) {
       setVideoStatus(error instanceof Error ? error.message : 'Could not create the video.');
     }
@@ -112,11 +112,11 @@ export const PagesPanel: React.FC = () => {
           type="button"
           onClick={() => void makeVideo()}
           disabled={videoStatus === 'Creating…'}
-          title="Creates a motion video from this template's content (text edits made on the canvas are not included)."
+          title="Creates a motion video from this design's current text and uploaded photos."
           className="flex items-center justify-center gap-1.5 rounded-lg border border-violet-500/40 px-2 py-1.5 text-[10px] font-semibold text-violet-200 transition-colors hover:bg-violet-500/10 disabled:opacity-60"
         >
           <Clapperboard className="h-3.5 w-3.5" />
-          {videoStatus === 'Creating…' ? videoStatus : 'Make motion video from template'}
+          {videoStatus === 'Creating…' ? videoStatus : 'Make motion video'}
         </button>
       )}
       {videoStatus && videoStatus !== 'Creating…' && <p className="text-[10px] text-red-300" role="alert">{videoStatus}</p>}
