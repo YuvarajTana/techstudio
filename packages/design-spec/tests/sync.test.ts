@@ -69,7 +69,7 @@ test('derived fact chips are ignored; replaced photos keep their owned asset id'
   const pages = canvasPages(spec);
   edit(pages, 0, 'facts.beds', { text: '9 Beds' });
   edit(pages, 0, 'price', { text: '$699,000' });
-  edit(pages, 0, 'hero', { type: 'image', designPlaceholder: false, assetUrl: '/media/uploads/u1/house.jpg', assetId: 'upl_123' });
+  edit(pages, 0, 'hero', { type: 'image', designPlaceholder: false, objectType: 'uploaded-image', assetUrl: '/media/uploads/u1/house.jpg', assetId: 'upl_123' });
   const { spec: next, changed } = specFromPages(spec, pages);
   assert.deepEqual(changed.sort(), ['p1/hero', 'p1/price']);
   assert.deepEqual((next.pages[0].slots.facts as { beds: number }).beds, 4);
@@ -83,4 +83,11 @@ test('malformed page data and unknown slots are skipped', () => {
     { id: 'page-p1', data: JSON.stringify({ objects: [{ type: 'textbox', text: 'x', designSlot: 'nope.3.title' }, { type: 'textbox', text: 'y' }] }) },
   ]);
   assert.deepEqual(result.changed, []);
+});
+
+test('library images on the canvas keep their src but not their catalogue id', () => {
+  const spec = template('ds-re-just-sold');
+  const pages = canvasPages(spec);
+  edit(pages, 0, 'hero', { type: 'image', designPlaceholder: false, assetUrl: '/media/asset-library-full/architecture/003-house.jpg', assetId: 'cur_img_architec_003_photo', assetCategory: 'architecture' });
+  assert.deepEqual(specFromPages(spec, pages).spec.pages[0].slots.hero, { src: '/media/asset-library-full/architecture/003-house.jpg', alt: 'Sold property' });
 });

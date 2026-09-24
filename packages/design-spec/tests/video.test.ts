@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PRESET_SIZES, compileVideo, validateCreativeVideo, type CreativePreset } from '@teckstudio/lesson-video';
 import { STARTER_TEMPLATES, adaptLegacyPosterTemplate, instantiateTemplate } from '../src/catalog/index.ts';
-import { toCreativeVideo } from '../src/video/index.ts';
+import { resolveDesignImage, toCreativeVideo } from '../src/video/index.ts';
 import { TECH_POSTER_TEMPLATES } from '../../../frontend/src/data/techPosterTemplates.ts';
 
 const PRESETS = Object.keys(PRESET_SIZES) as CreativePreset[];
@@ -66,4 +66,22 @@ test('just-sold stats become animated counters', () => {
   const stats = toCreativeVideo(template.spec).scenes.find((s) => s.type === 'stats');
   assert.ok(stats && stats.type === 'stats');
   assert.deepEqual(stats.items.map((i) => [i.value, i.suffix]), [[6, undefined], [104, '%'], [9, undefined]]);
+});
+
+test('default image resolver maps uploads and library photos, nothing else', () => {
+  assert.deepEqual(resolveDesignImage({ src: '/media/uploads/u/1.png', assetId: 'upl_1' }), { source: 'uploaded', assetId: 'upl_1' });
+  assert.deepEqual(resolveDesignImage({ src: '/media/asset-library-full/real-estate/01-house-exterior.jpg' }), { source: 'library', assetId: 'real-estate__01-house-exterior' });
+  assert.deepEqual(resolveDesignImage({ src: 'http://127.0.0.1:5001/media/asset-library/nature/001-mountain-lake.jpg?v=2' }), { source: 'library', assetId: 'nature__001-mountain-lake' });
+  for (const src of ['', 'https://example.com/a.jpg', 'data:image/png;base64,xx', '/media/asset-library/../secrets/x.jpg', '/media/asset-library/nature/sub/x.jpg']) {
+    assert.equal(resolveDesignImage({ src }), undefined, src);
+  }
+  const template = STARTER_TEMPLATES.find((t) => t.id === 'ds-deck-property-listing')!;
+  const spec = instantiateTemplate(template, { id: 'lib' });
+  (spec.pages[0].slots.hero as { src: string }).src = '/media/asset-library-full/real-estate/01-house-exterior.jpg';
+  (spec.pages[1].slots.photos as { src: string }[])[0].src = '/media/asset-library/real-estate/03-living-room.jpg';
+  const video = toCreativeVideo(spec, { resolveImage: resolveDesignImage });
+  assert.deepEqual(video.assets.map((a) => [a.source, a.assetId]), [['library', 'real-estate__01-house-exterior'], ['library', 'real-estate__03-living-room']]);
+  const listing = video.scenes.find((s) => s.type === 'listing');
+  assert.ok(listing && listing.type === 'listing' && listing.photoAssetIds[0] === 'img-1');
+  assert.deepEqual(validateCreativeVideo(video), []);
 });

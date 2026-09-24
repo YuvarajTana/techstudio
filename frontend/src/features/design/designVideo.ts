@@ -1,17 +1,7 @@
-import {specFromPages, type CanvasPage, type DesignSpec, type ImageValue} from '@teckstudio/design-spec';
-import {toCreativeVideo, type VideoMappingOptions} from '@teckstudio/design-spec/video';
+import {specFromPages, type CanvasPage, type DesignSpec} from '@teckstudio/design-spec';
+import {resolveDesignImage, toCreativeVideo} from '@teckstudio/design-spec/video';
 import {apiJson} from '../../services/apiClient';
 import type {DesignContext} from './designProject';
-
-/**
- * Design images the video renderer may use: editor uploads (owned media, via
- * their asset id) and shared library photos. Other images (remote URLs,
- * placeholders) are left out, and listing scenes show a photo slot instead.
- */
-export const resolveDesignImage: VideoMappingOptions['resolveImage'] = (image: ImageValue) => {
-  if (image.assetId) return {source: 'uploaded', assetId: image.assetId};
-  return undefined;
-};
 
 /** Turn a DesignSpec (poster or deck) into a motion video project and return its id. */
 export async function createDesignVideo(spec: DesignSpec, templateId?: string): Promise<string> {

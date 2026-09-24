@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -282,7 +283,61 @@ def persist_generated_local_asset(
         raise
 
 
+LIBRARY_ID_RE = re.compile(r"^([a-z0-9][a-z0-9-]{0,40})__([A-Za-z0-9_-]{1,56})$")
+LIBRARY_MIMES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+
+
+def library_media_root() -> Path:
+    """Shared photo library originals (backend/media/asset-library/<category>/)."""
+    return resolve_runtime_path(settings.MEDIA_ROOT).resolve() / "asset-library"
+
+
+def resolve_library_asset(asset_id: str):
+    """Resolve `<category>__<file stem>` to a public library photo.
+
+    Library photos are public (also served under /media), so any signed-in user
+    may use them in a video. Only original images directly inside a category
+    folder are reachable; ids cannot express paths.
+    """
+    match = LIBRARY_ID_RE.fullmatch(asset_id or "")
+    if not match:
+        raise HTTPException(404, "Media not found.")
+    category, stem = match.groups()
+    root = library_media_root()
+    folder = (root / category).resolve()
+    if folder.parent != root or not folder.is_dir():
+        raise HTTPException(404, "Media not found.")
+    path = next(
+        (folder / f"{stem}{suffix}" for suffix in LIBRARY_MIMES if (folder / f"{stem}{suffix}").is_file()),
+        None,
+    )
+    if path is None or path.resolve().parent != folder:
+        raise HTTPException(404, "Media not found.")
+    if path.stat().st_size > MAX_MEDIA_BYTES:
+        raise HTTPException(422, "Media format is unsupported.")
+    mime_type = LIBRARY_MIMES[path.suffix.lower()]
+    try:
+        from PIL import Image
+
+        with Image.open(path) as image:
+            width, height = image.size
+    except Exception:
+        raise HTTPException(422, "Media format is unsupported.")
+    record = SimpleNamespace(id=asset_id, mime_type=mime_type, width=width, height=height)
+    metadata = {
+        "kind": "image",
+        "mime_type": mime_type,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "width": width,
+        "height": height,
+        "library": f"{category}/{path.name}",
+    }
+    return record, path, metadata
+
+
 def resolve_owned_asset(db: Session, user_id: str, source: str, asset_id: str):
+    if source == "library":
+        return resolve_library_asset(asset_id)
     model = {"uploaded": UploadedAsset, "generated": GeneratedAsset}.get(source)
     if not model or not ID_RE.fullmatch(asset_id):
         raise HTTPException(404, "Media not found.")

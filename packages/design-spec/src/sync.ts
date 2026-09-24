@@ -22,6 +22,7 @@ interface CanvasObject {
   assetUrl?: string;
   sourceUrl?: string;
   assetId?: string;
+  objectType?: string;
   designSlot?: string;
   posterField?: string;
   designPageId?: string;
@@ -78,7 +79,9 @@ function writeImage(slots: Record<string, unknown>, path: string, image: ImageVa
   const key = parts[parts.length - 1];
   const current = (parent as Record<string, unknown>)[key] as ImageValue | undefined;
   if (current && current.src === image.src && current.assetId === image.assetId) return false;
-  (parent as Record<string, unknown>)[key] = { ...(current ?? {}), ...image };
+  const { assetId: _stale, ...rest } = current ?? ({} as ImageValue);
+  void _stale;
+  (parent as Record<string, unknown>)[key] = { ...rest, ...image };
   return true;
 }
 
@@ -107,7 +110,10 @@ export function specFromPages(spec: DesignSpec, pages: CanvasPage[]): { spec: De
       } else if (object.type === 'image' && IMAGE_SLOT.test(slot) && !object.designPlaceholder) {
         const src = object.assetUrl || object.sourceUrl || object.src;
         if (!src || src.startsWith('data:')) continue;
-        const image: ImageValue = { src, ...(object.assetId ? { assetId: object.assetId } : {}) };
+        // Only editor uploads carry an owned-media id; library images carry a
+        // catalogue id that is not a media asset (they resolve by src instead).
+        const owned = object.objectType === 'uploaded-image' && object.assetId;
+        const image: ImageValue = owned ? { src, assetId: object.assetId } : { src };
         if (writeImage(slots, slot, image)) changed.push(`${page.id}/${slot}`);
       }
     }

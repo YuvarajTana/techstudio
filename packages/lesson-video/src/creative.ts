@@ -12,7 +12,8 @@ import {
 export interface CreativeMedia {
   id: string;
   kind: "image" | "audio";
-  source: "uploaded" | "generated";
+  /** "library" = shared photo library, id `<category>__<file stem>`. */
+  source: "uploaded" | "generated" | "library";
   assetId: string;
 }
 export interface CaptionCue {

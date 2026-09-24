@@ -20,6 +20,21 @@ export interface VideoMappingOptions {
   resolveImage?: (image: ImageValue) => { source: CreativeMedia['source']; assetId: string } | undefined;
 }
 
+const LIBRARY_SRC = /\/media\/asset-library(?:-full|-thumbnails)?\/([a-z0-9][a-z0-9-]{0,40})\/([A-Za-z0-9_-]{1,56})\.(?:jpe?g|png|webp)(?:[?#].*)?$/i;
+
+/**
+ * Default image → media mapping: owned editor uploads (`assetId`) and photos
+ * from the shared library (`/media/asset-library…/<category>/<name>.jpg`, any
+ * derived size) become video media. Anything else (remote URLs, data URLs,
+ * placeholders) is left out.
+ */
+export function resolveDesignImage(image: ImageValue): { source: CreativeMedia['source']; assetId: string } | undefined {
+  if (image.assetId) return { source: 'uploaded', assetId: image.assetId };
+  const match = LIBRARY_SRC.exec(image.src ?? '');
+  if (match) return { source: 'library', assetId: `${match[1].toLowerCase()}__${match[2]}` };
+  return undefined;
+}
+
 const FPS = 30;
 const MIN_TOTAL = 15 * FPS;
 const MAX_TOTAL = 90 * FPS;
