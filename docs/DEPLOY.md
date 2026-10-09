@@ -118,7 +118,7 @@ Keep `.env.docker` with your backups. It holds the database and signing secrets.
 | Symptom | Fix |
 |---|---|
 | "Docker is installed but not running" | Start Docker Desktop and wait for the whale icon to settle. |
-| "port is already allocated" | Something else uses 8080. Set `APP_PORT=8090` in `.env.docker` and run `./scripts/demo.sh` again. |
+| "port is already allocated" | Another program uses the port. `./scripts/demo.sh` now moves to the next free port by itself and saves it as `APP_PORT` in `.env.docker`; the printed address shows which one. To choose a port yourself, set `APP_PORT`. |
 | The first build fails while downloading | Re-run it: Docker reuses the finished steps. On a corporate network with a TLS-inspecting proxy, set `BASE_IMAGE=<an Ubuntu 24.04 image that trusts the proxy's certificate>` in `.env.docker` and run again. If the render browser cannot be downloaded, set `REMOTION_BROWSER_EXECUTABLE` in that base image to an installed Chrome headless shell. |
 | Waits forever for the video worker | Run `./scripts/demo.sh logs`. Give Docker Desktop at least 4 GB of memory. |
 | Login says the account doesn't exist | The Docker stack has its own database. Use the demo login from `.env.docker`, or register. Accounts from `./scripts/start_local.sh` live in a different database. |
