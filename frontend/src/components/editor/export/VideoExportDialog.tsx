@@ -25,7 +25,7 @@ import {
   getVideoRenderStatus,
   uploadVideoRenderFrames,
 } from '../../../services/videoExportService';
-import { API_BASE_URL, apiUrl, getAuthToken } from '../../../services/apiClient';
+import { apiOrigin, apiUrl, getAuthToken } from '../../../services/apiClient';
 import type { VideoRenderStatus } from '../../../types/videoExport';
 import {
   canvasToPngBlob,
@@ -82,7 +82,7 @@ const shouldResolveThroughBackend = (assetUrl: string) => {
   try {
     const asset = new URL(assetUrl, window.location.href);
     const frontendOrigin = window.location.origin;
-    const backendOrigin = new URL(API_BASE_URL).origin;
+    const backendOrigin = apiOrigin();
     return (
       BACKEND_AUDIO_PATH_PREFIXES.some((prefix) => asset.pathname.startsWith(prefix))
       && (asset.origin === frontendOrigin || asset.origin === backendOrigin)
@@ -108,7 +108,7 @@ const fetchAudioBlobForExport = async (clip: TimelineAudioClip) => {
   const token = getAuthToken();
   let usesBackend: boolean;
   try {
-    usesBackend = new URL(resolvedUrl, window.location.href).origin === new URL(API_BASE_URL).origin;
+    usesBackend = new URL(resolvedUrl, window.location.href).origin === apiOrigin();
   } catch {
     usesBackend = false;
   }

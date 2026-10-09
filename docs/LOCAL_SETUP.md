@@ -1,5 +1,7 @@
 # Run TECKSTUDIO locally
 
+> **For a demo, or to avoid installing Node, Python, MySQL and FFmpeg, use Docker:** `./scripts/demo.sh` sets everything up and starts it with one command, on a Mac, on Linux, on Windows (WSL) or on a cloud server. See [DEPLOY](DEPLOY.md). The native path below is for day-to-day development with hot reload.
+
 The complete local stack is **browser → React/Vite → FastAPI → MySQL**, with a **local Node/Remotion worker** for Lesson Video, **FFmpeg** for the existing canvas exporter and local disk for media. There is no required Redis, cloud database or hosted AI service for manual authoring. Initial package/browser installation requires internet. Remotion lessons use packaged fonts; some existing canvas fonts and connected assets use internet at runtime. See [Create lesson videos locally](REMOTION_LOCAL_GUIDE.md) for the new workflow.
 
 ## Recommended path on this Mac
@@ -14,7 +16,13 @@ brew install node@24 python@3.12 mysql ffmpeg
 
 Ensure the installed executables are on `PATH`; Homebrew prints instructions for keg-only packages. Use the same MySQL major version for an existing data directory; changing the binary is a database upgrade, not a routine restart. The launcher was exercised on Apple Silicon macOS; Linux and Windows instructions below are not tested on this machine.
 
-From the project root:
+From the project root, one command sets up on the first run and starts every time after that:
+
+```bash
+./scripts/run_local.sh        # or: npm run local
+```
+
+It runs the two steps below; you can also run them separately:
 
 ```bash
 ./scripts/setup_local.sh
@@ -23,7 +31,7 @@ From the project root:
 
 `setup_local.sh` selects a compatible Python, creates `.venv`, installs `backend/requirements-local.lock`, runs `npm ci` against the root workspace lockfile, prepares the Remotion browser/bundle and private worker key, and initializes a new local database. Managed existing data is preserved. If an unmanaged `backend/.env` or database directory is found, initialization stops rather than overwriting it. Use the manual path in that case. You can select Python with `TECKSTUDIO_PYTHON=/absolute/path/to/python3.12 ./scripts/setup_local.sh`.
 
-`start_local.sh` starts four services in order: MySQL, API, frontend and render worker. It waits for readiness and logs to `.local`, including `.local/renderer-process.log`. It intentionally runs FastAPI without auto-reload for a stable teaching session. Ctrl+C stops its child services gracefully. Keep the terminal open while using the product.
+`start_local.sh` starts five services in order: MySQL, API, frontend, the Lesson Video render worker and the local generation worker. It waits for readiness and logs to `.local`, including `.local/renderer-process.log`. It intentionally runs FastAPI without auto-reload for a stable teaching session. Ctrl+C stops its child services gracefully. Keep the terminal open while using the product.
 
 To stop from a different terminal, run `./scripts/stop_local.sh`. This asks the managed launcher to shut down its own children; it does not kill unrelated processes. Restart with `./scripts/start_local.sh`.
 

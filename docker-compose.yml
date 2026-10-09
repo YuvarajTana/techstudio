@@ -1,0 +1,81 @@
+# TECKSTUDIO: MySQL + app (API, built frontend, video and generation workers).
+#
+#   ./scripts/demo.sh            one command: creates secrets, builds, starts, prints the login
+#   docker compose --env-file .env.docker up -d --build      what demo.sh runs
+#
+# Cloud with HTTPS: set DOMAIN in .env.docker (DNS pointing at the server); demo.sh then
+# adds the `https` profile, which puts Caddy with automatic certificates in front.
+# See docs/DEPLOY.md.
+
+name: teckstudio
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    environment:
+      MYSQL_DATABASE: teckstudio
+      MYSQL_USER: teckstudio
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Run ./scripts/demo.sh once to create .env.docker}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Run ./scripts/demo.sh once to create .env.docker}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u teckstudio -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      args:
+        # Only behind a TLS-inspecting proxy: a base image that trusts its certificate.
+        BASE_IMAGE: ${BASE_IMAGE:-ubuntu:24.04}
+    image: teckstudio-app:latest
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: teckstudio
+      DB_NAME: teckstudio
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Run ./scripts/demo.sh once to create .env.docker}
+      LESSON_VIDEO_WORKER_SECRET: ${WORKER_SECRET:?Run ./scripts/demo.sh once to create .env.docker}
+      # Optional AI providers. Manual design, templates, PNG/PDF and video work without them.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      STABILITY_API_KEY: ${STABILITY_API_KEY:-}
+      UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY:-}
+    ports:
+      # 127.0.0.1 keeps the app on this computer. Set BIND_ADDRESS=0.0.0.0 to open it to your
+      # network (e.g. a client's laptop in the same room). Behind HTTPS, keep 127.0.0.1.
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    volumes:
+      - media:/app/backend/media
+      - runtime:/app/.local
+
+  https:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    command: ["caddy", "reverse-proxy", "--from", "${DOMAIN:-localhost}", "--to", "app:8080"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  mysql-data:
+  media:
+  runtime:
+  caddy-data:

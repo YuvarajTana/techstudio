@@ -16,15 +16,20 @@ TECKSTUDIO is a visual authoring studio with useful building blocks for teaching
 
 ## Start the local product
 
-From the project root:
+**One command, Docker only** (demos, Windows/Linux, cloud). See [DEPLOY](DEPLOY.md) and the [client demo run sheet](CLIENT_DEMO.md):
 
 ```bash
-./scripts/setup_local.sh   # first time; installs dependencies and initializes local data
-./scripts/start_local.sh   # each work session; keep this terminal open
+./scripts/demo.sh          # builds, starts, prints the login; open http://127.0.0.1:8080
+```
+
+**Native, for development** (needs Node, Python, MySQL and FFmpeg; see [LOCAL_SETUP](LOCAL_SETUP.md)). From the project root:
+
+```bash
+./scripts/run_local.sh     # first run sets up, then starts; keep this terminal open
 ./scripts/stop_local.sh    # from another terminal when you want to stop
 ```
 
-Open [TECKSTUDIO](http://127.0.0.1:5173). Use the registration form to create your own local account. An account in a hosted copy of this product does not automatically exist in this database. Stop with Ctrl+C in the launcher terminal. Restart with the same command; your projects persist.
+With the native path, open [TECKSTUDIO](http://127.0.0.1:5173). Use the registration form to create your own local account. An account in a hosted copy of this product does not automatically exist in this database. Stop with Ctrl+C in the launcher terminal. Restart with the same command; your projects persist.
 
 The local smoke check also created an editable **Teaching starter — Request lifecycle** example. Its separate demo login is saved privately in `.local/demo-account.json`. Register your own account for your real course material; the demo account contains verification fixtures.
 

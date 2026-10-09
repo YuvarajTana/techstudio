@@ -45,11 +45,18 @@ API contracts and commands; the [validation record](docs/REMOTION_VALIDATION.md)
 and recovery checks. The [integration design](docs/REMOTION_INTEGRATION_PLAN.md) and
 [implementation record](docs/REMOTION_IMPLEMENTATION_PLAN.md) retain the next milestones.
 
-On macOS/Linux with the prerequisites installed:
+**One command (needs only Docker), locally or on a cloud server:**
 
 ```bash
-./scripts/setup_local.sh
-./scripts/start_local.sh
+./scripts/demo.sh
+```
+
+It creates private secrets, builds and starts MySQL plus the app on <http://127.0.0.1:8080>, and prints a demo login. See [DEPLOY](docs/DEPLOY.md) for cloud and HTTPS, and the [client demo run sheet](docs/CLIENT_DEMO.md).
+
+For development on macOS/Linux with the prerequisites installed, `./scripts/run_local.sh` sets up on the first run and starts the native stack (Vite on 5173):
+
+```bash
+./scripts/run_local.sh
 ```
 
 The launcher uses a project-owned MySQL instance on **3307**, API on **5001**, and

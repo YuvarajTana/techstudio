@@ -8,6 +8,10 @@
     "renderer"
   ],
   "scripts": {
+    "demo": "./scripts/demo.sh",
+    "demo:stop": "./scripts/demo.sh stop",
+    "demo:status": "./scripts/demo.sh status",
+    "local": "./scripts/run_local.sh",
     "build": "npm run build --workspace frontend && tsc -p tsconfig.video.json",
     "dev": "npm run dev --workspace frontend",
     "video:prepare": "node --import tsx renderer/src/prepare.ts",

@@ -88,6 +88,10 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 5001
+    # Single-container deployments: serve the built frontend (frontend/dist) from the API.
+    FRONTEND_DIST: str = ""
+    # Reject /api/internal/* (render and generation workers) unless the caller is on this machine.
+    INTERNAL_API_LOOPBACK_ONLY: bool = False
 
     class Config:
         env_file = str(ENV_PATH)

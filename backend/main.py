@@ -1,8 +1,9 @@
 import time
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
@@ -35,6 +36,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def internal_routes_loopback_only(request: Request, call_next):
+    # Workers run beside the API and call it over loopback. When the API is
+    # published (container, cloud), outside callers never reach worker routes,
+    # even with a leaked worker secret.
+    if settings.INTERNAL_API_LOOPBACK_ONLY and request.url.path.startswith("/api/internal/"):
+        host = request.client.host if request.client else ""
+        if host not in {"127.0.0.1", "::1"}:
+            return JSONResponse({"detail": "Not found"}, status_code=404)
+    return await call_next(request)
+
 
 MEDIA_DIR = resolve_runtime_path(settings.MEDIA_ROOT)
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
@@ -156,6 +169,25 @@ def get_stats():
         }
     finally:
         db.close()
+
+
+# Registered last so every API route above wins. Unknown /api paths stay 404.
+if settings.FRONTEND_DIST:
+    FRONTEND_DIR = resolve_runtime_path(settings.FRONTEND_DIST).resolve()
+    if not (FRONTEND_DIR / "index.html").is_file():
+        raise RuntimeError(f"FRONTEND_DIST={FRONTEND_DIR} has no index.html; build the frontend first.")
+    API_PREFIXES = ("api/", "media/", "docs", "redoc", "openapi.json", "health")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def frontend(path: str):
+        if path.startswith(API_PREFIXES):
+            raise HTTPException(status_code=404, detail="Not found")
+        candidate = (FRONTEND_DIR / path).resolve()
+        if path and candidate.is_file() and candidate.is_relative_to(FRONTEND_DIR):
+            # Hashed build assets never change; the HTML shell must always revalidate.
+            cache = "public, max-age=31536000, immutable" if path.startswith("assets/") else "no-cache"
+            return FileResponse(candidate, headers={"Cache-Control": cache})
+        return FileResponse(FRONTEND_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 if __name__ == "__main__":

@@ -91,7 +91,12 @@ export async function prepareRuntime(): Promise<RuntimeInfo> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
-  const browser = await ensureBrowser({ logLevel: "info" });
+  // REMOTION_BROWSER_EXECUTABLE: use an installed Chrome/Chromium headless shell
+  // instead of downloading one (offline machines, locked-down networks).
+  const browser = await ensureBrowser({
+    logLevel: "info",
+    browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE || null,
+  });
   if (!("path" in browser))
     throw new Error(
       "Remotion browser is unavailable. Run npm run video:prepare with network access.",

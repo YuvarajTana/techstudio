@@ -181,10 +181,10 @@ export default function LessonVideoEditor() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
-  async function saveDraft() {
-    if (!draft) throw new Error("No lesson is loaded.");
-    if (!dirty) return revision;
-    const spec = parseVideo(draft);
+  async function saveDraft(current: VideoSpec | null = draft) {
+    if (!current) throw new Error("No lesson is loaded.");
+    if (JSON.stringify(current) === saved) return revision;
+    const spec = parseVideo(current);
     const result = await apiJson<Document>(
       documentPath,
       {
@@ -209,10 +209,29 @@ export default function LessonVideoEditor() {
     }
   }
   async function render() {
+    // A narration script without a recording blocks rendering (designs bring their
+    // speaker notes as scripts). Offer the silent render instead of failing.
+    let current = draft;
+    if (isCreative && current && "scenes" in current) {
+      const scenes = (current as CreativeVideoSpec).scenes;
+      const unvoiced = scenes.filter((scene) => scene.narration?.text.trim() && !scene.narration.assetId).length;
+      if (unvoiced) {
+        const confirmed = window.confirm(
+          `${unvoiced} scene${unvoiced === 1 ? " has" : "s have"} a narration script but no recording. ` +
+            "Render a silent video now? The unrecorded scripts are cleared; you can add narration later.",
+        );
+        if (!confirmed) return;
+        current = {
+          ...(current as CreativeVideoSpec),
+          scenes: scenes.map((scene) => (scene.narration?.text.trim() && !scene.narration.assetId ? { ...scene, narration: undefined, captions: undefined } : scene)),
+        } as VideoSpec;
+        setDraft(current);
+      }
+    }
     setBusy(true);
     setError("");
     try {
-      const rev = await saveDraft();
+      const rev = await saveDraft(current);
       if (submission.current?.revision !== rev)
         submission.current = { revision: rev, key: crypto.randomUUID() };
       await apiJson("/api/video/render/remotion", {

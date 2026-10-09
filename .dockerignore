@@ -1,0 +1,22 @@
+# Keep the image free of local data, secrets and machine-specific builds.
+.git
+**/node_modules
+.local
+.venv
+**/__pycache__
+**/.pytest_cache
+frontend/dist
+dist
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!**/.env.example
+# User content and derived media are created at runtime in the media volume.
+backend/media/*
+!backend/media/asset-library
+.cursor
+.mimocode
+.DS_Store

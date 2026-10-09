@@ -1,9 +1,15 @@
-export const API_BASE_URL = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://127.0.0.1:5001').replace(/\/$/, '');
+// Unset: the local API on 5001. Empty string: same origin (the API serves this app, e.g. in Docker).
+export const API_BASE_URL = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://127.0.0.1:5001').replace(/\/$/, '');
 
 type ApiFetchOptions = RequestInit & {
   timeoutMs?: number;
   auth?: boolean;
 };
+
+/** Origin of the API (this page's origin when the API serves the app). */
+export function apiOrigin() {
+  return new URL(API_BASE_URL || '/', window.location.href).origin;
+}
 
 export function apiUrl(path: string) {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
