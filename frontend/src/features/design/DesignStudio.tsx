@@ -1,13 +1,15 @@
 import {useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode} from 'react';
 import {useNavigate, useSearchParams} from 'react-router-dom';
-import {ArrowLeft, CalendarHeart, ChevronDown, Download, Film, LayoutTemplate, Presentation, Search, Store} from 'lucide-react';
+import {ArrowLeft, CalendarHeart, ChevronDown, ClipboardCopy, Download, Film, LayoutTemplate, Presentation, Search, Store} from 'lucide-react';
 import {
   FORMATS,
   THEMES,
   applyBusinessProfile,
   getFormat,
   layoutPage,
+  linkedInCaption,
   requireLayoutFamily,
+  usesBusinessProfile,
   validateDesignSpec,
   type DesignSpec,
   type FormatDef,
@@ -29,6 +31,7 @@ const VERTICALS: {id: VerticalFilter; label: string}[] = [
   {id: 'festival', label: 'Festivals'},
   {id: 'business', label: 'Offers & shops'},
   {id: 'events', label: 'Invitations'},
+  {id: 'hiring', label: 'Hiring'},
   {id: 'education', label: 'Education'},
   {id: 'real-estate', label: 'Real estate'},
   {id: 'tech', label: 'Tech teaching'},
@@ -40,8 +43,6 @@ const OUTPUTS: {id: OutputFilter; label: string}[] = [
   {id: 'deck', label: 'Slide decks'},
   {id: 'video', label: 'Video'},
 ];
-/** Layouts whose slots take saved business details (see applyBusinessProfile). */
-const PROFILE_LAYOUTS = new Set(['festival-greeting', 'offer-promo', 'event-invite', 'listing-hero', 'open-house', 'just-sold']);
 
 const isVertical = (value: string | null): value is VerticalFilter => VERTICALS.some((item) => item.id === value);
 
@@ -52,7 +53,7 @@ function hashKey(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-function Thumbnail({cacheKey, spec, className, pageIndex = 0, maxEdge, eager}: {cacheKey: string; spec: DesignSpec; className?: string; pageIndex?: number; maxEdge?: number; eager?: boolean}) {
+function Thumbnail({cacheKey, spec, className, pageIndex = 0, maxEdge, eager, preview, alt = ''}: {cacheKey: string; spec: DesignSpec; className?: string; pageIndex?: number; maxEdge?: number; eager?: boolean; preview?: boolean; alt?: string}) {
   const ref = useRef<HTMLDivElement>(null);
   const [rendered, setRendered] = useState<{key: string; url: string}>();
   const [visible, setVisible] = useState(Boolean(eager));
@@ -71,18 +72,18 @@ function Thumbnail({cacheKey, spec, className, pageIndex = 0, maxEdge, eager}: {
   useEffect(() => {
     if (!visible) return;
     let alive = true;
-    designThumbnail(cacheKey, spec, maxEdge, pageIndex).then((url) => alive && setRendered({key: cacheKey, url})).catch(() => undefined);
+    designThumbnail(cacheKey, spec, maxEdge, pageIndex, {preview, isStale: () => !alive}).then((url) => alive && setRendered({key: cacheKey, url})).catch(() => undefined);
     return () => {
       alive = false;
     };
-  }, [cacheKey, spec, visible, maxEdge, pageIndex]);
+  }, [cacheKey, spec, visible, maxEdge, pageIndex, preview]);
   const format = getFormat(spec.format);
   // Keep showing the previous render while the next one is prepared (no flicker while typing).
   const url = rendered?.url;
   return (
     <div ref={ref} className={`flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-[#0E0E16] ${className ?? ''}`}>
       {url ? (
-        <img src={url} alt="" className={`max-h-full max-w-full object-contain transition-opacity ${rendered?.key === cacheKey ? 'opacity-100' : 'opacity-70'}`} />
+        <img src={url} alt={alt} className={`max-h-full max-w-full object-contain transition-opacity ${rendered?.key === cacheKey ? 'opacity-100' : 'opacity-70'}`} />
       ) : (
         <div className="flex max-h-full max-w-full items-center justify-center bg-white/[0.04]" style={{aspectRatio: format ? `${format.width} / ${format.height}` : '4 / 5', height: '80%'}}>
           <LayoutTemplate className="h-7 w-7 text-[#6d6d80]" />
@@ -143,13 +144,16 @@ const fieldInput = 'w-full rounded-lg border border-white/[0.12] bg-[#0E0E16] px
 function QuickField({slot, value, onChange}: {slot: SlotDef; value: string; onChange: (value: string) => void}) {
   const long = (slot.maxChars ?? 0) > 90;
   const over = slot.maxChars !== undefined && value.length > slot.maxChars;
+  const id = `quick-${slot.name}`;
+  const field = {id, value, 'aria-describedby': slot.maxChars ? `${id}-count` : undefined, 'aria-invalid': over || undefined, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(event.target.value)};
   return (
-    <label className="flex flex-col gap-1 text-xs font-semibold text-[#A8A8B8]">
-      <span className="flex justify-between gap-2"><span>{slot.label}{slot.required ? ' *' : ''}</span>{slot.maxChars && <span aria-hidden="true" className={over ? 'text-red-300' : 'text-[#6d6d80]'}>{value.length}/{slot.maxChars}</span>}</span>
-      {long
-        ? <textarea rows={2} value={value} onChange={(event) => onChange(event.target.value)} className={`${fieldInput} resize-y`} />
-        : <input value={value} onChange={(event) => onChange(event.target.value)} className={fieldInput} />}
-    </label>
+    <div className="flex flex-col gap-1 text-xs font-semibold text-[#A8A8B8]">
+      <span className="flex justify-between gap-2">
+        <label htmlFor={id}>{slot.label}{slot.required ? ' *' : ''}</label>
+        {slot.maxChars && <span id={`${id}-count`} className={over ? 'text-red-300' : 'text-[#6d6d80]'}>{over ? `Too long: ${value.length} of ${slot.maxChars}` : `${value.length}/${slot.maxChars}`}</span>}
+      </span>
+      {long ? <textarea rows={2} {...field} className={`${fieldInput} resize-y`} /> : <input {...field} className={fieldInput} />}
+    </div>
   );
 }
 
@@ -191,7 +195,16 @@ function TemplateChooser({template, onClose}: {template: DesignTemplate; onClose
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const isDeck = template.spec.pages.length > 1;
-  const usesProfile = template.spec.pages.some((page) => PROFILE_LAYOUTS.has(page.layout));
+  const usesProfile = usesBusinessProfile(template.spec);
+  const isJob = template.spec.pages[0].layout === 'job-posting';
+  const [copied, setCopied] = useState(false);
+  // Move focus into the dialog (so Escape works at once) and give it back to the card on close.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    return () => previous?.focus?.();
+  }, []);
 
   // Template → saved business details → what the user typed here.
   const spec = useMemo(() => {
@@ -211,6 +224,17 @@ function TemplateChooser({template, onClose}: {template: DesignTemplate; onClose
     return () => window.clearTimeout(timer);
   }, [spec]);
   const previewKey = useMemo(() => `${template.id}:${hashKey(JSON.stringify(preview))}`, [template.id, preview]);
+  // Slide thumbnails change only when their own page (or size/colours) changes.
+  const pageKeys = useMemo(() => preview.pages.map((page, i) => `${template.id}:${i}:${hashKey(JSON.stringify({...preview, pages: undefined, page}))}`), [template.id, preview]);
+  const copyCaption = async () => {
+    try {
+      await navigator.clipboard.writeText(linkedInCaption(spec));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setError('Could not copy. Your browser blocked clipboard access.');
+    }
+  };
 
   const updateProfile = (next: StoredProfile) => {
     setProfile(next);
@@ -240,15 +264,15 @@ function TemplateChooser({template, onClose}: {template: DesignTemplate; onClose
   const fresh = (): DesignSpec => ({...JSON.parse(JSON.stringify(spec)) as DesignSpec, id: `${template.spec.id}-${Date.now().toString(36)}`});
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4" role="dialog" aria-modal="true" aria-label={template.name} onClick={onClose} onKeyDown={(event) => event.key === 'Escape' && onClose()}>
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 outline-none sm:p-4" role="dialog" aria-modal="true" aria-label={template.name} onClick={onClose} onKeyDown={(event) => event.key === 'Escape' && onClose()}>
       <div className="grid max-h-[94vh] w-full max-w-6xl gap-5 overflow-y-auto rounded-2xl border border-white/[0.10] bg-[#12121B] p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_380px]" onClick={(event) => event.stopPropagation()}>
         <div className="flex min-h-[300px] flex-col gap-3 lg:sticky lg:top-0">
-          <Thumbnail key={previewPage} cacheKey={previewKey} spec={preview} pageIndex={previewPage} maxEdge={1000} eager className="h-[48vh] min-h-[280px] p-3 lg:h-[72vh]" />
+          <Thumbnail key={previewPage} cacheKey={pageKeys[previewPage] ?? previewKey} spec={preview} pageIndex={previewPage} maxEdge={1000} eager preview alt={`Preview of ${template.name}${isDeck ? `, slide ${previewPage + 1}` : ''}`} className="h-[48vh] min-h-[280px] p-3 lg:h-[72vh]" />
           {isDeck && (
             <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Slides">
               {template.spec.pages.map((page, index) => (
                 <button key={page.id} type="button" role="tab" aria-selected={previewPage === index} onClick={() => setPreviewPage(index)} className={`shrink-0 rounded-lg border p-1 ${previewPage === index ? 'border-violet-400/70' : 'border-white/[0.08] hover:border-white/[0.2]'}`}>
-                  <Thumbnail cacheKey={previewKey} spec={preview} pageIndex={index} maxEdge={220} eager className="h-16 w-24 border-0" />
+                  <Thumbnail cacheKey={pageKeys[index]} spec={preview} pageIndex={index} maxEdge={220} eager preview className="h-16 w-24 border-0" />
                   <span className="mt-1 block text-[10px] font-semibold text-[#A8A8B8]">Slide {index + 1}</span>
                 </button>
               ))}
@@ -301,6 +325,12 @@ function TemplateChooser({template, onClose}: {template: DesignTemplate; onClose
               }} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.14] text-sm font-semibold text-white hover:bg-white/[0.05] disabled:opacity-50">
                 <Download className="h-4 w-4" />
                 {busy === 'png' ? 'Rendering…' : emptyPhotos ? 'Download PNG (add photo first)' : 'Download PNG'}
+              </button>
+            )}
+            {isJob && (
+              <button type="button" onClick={() => void copyCaption()} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.14] text-sm font-semibold text-white hover:bg-white/[0.05]">
+                <ClipboardCopy className="h-4 w-4" />
+                <span aria-live="polite">{copied ? 'Caption copied: paste it with the image' : 'Copy LinkedIn caption'}</span>
               </button>
             )}
             {template.outputs.includes('video') && (
@@ -402,7 +432,7 @@ export default function DesignStudio() {
             {OUTPUTS.map((item) => <Chip key={item.id} active={output === item.id} onClick={() => setOutput(item.id)}>{item.label}</Chip>)}
             <label className="relative ml-auto w-full sm:w-72">
               <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[#71717F]" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search: Diwali, menu, 3 BHK, wedding…" aria-label="Search templates" className="h-9 w-full rounded-lg border border-white/[0.10] bg-[#12121B] pl-9 pr-3 text-sm text-white placeholder:text-[#71717F]" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search: Diwali, hiring, menu, 3 BHK…" aria-label="Search templates" className="h-9 w-full rounded-lg border border-white/[0.10] bg-[#12121B] pl-9 pr-3 text-sm text-white placeholder:text-[#71717F]" />
             </label>
           </div>
         </div>

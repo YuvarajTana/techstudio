@@ -7,4 +7,5 @@ export { LAYOUT_FAMILIES, getLayoutFamily, requireLayoutFamily, layoutPage } fro
 export { factChips, formatNumber } from './layout/slots';
 export { ICONS, ICON_SOURCES, TRADEMARK_NOTICE, getIcon, iconSvg, listIcons, resolveIconId } from './icons';
 export { specFromPages, type CanvasPage } from './sync';
-export { applyBusinessProfile, type BusinessProfile } from './profile';
+export { applyBusinessProfile, usesBusinessProfile, type BusinessProfile } from './profile';
+export { linkedInCaption } from './caption';

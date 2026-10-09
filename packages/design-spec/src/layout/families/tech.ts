@@ -93,7 +93,7 @@ export const architectureFlow: LayoutFamily = {
     const { page } = ctx;
     const variant = page.variant ?? 'flow';
     b.background();
-    let area = b.ctaBar(b.safe, textSlot(page, 'takeaway'));
+    let area = b.ctaBar(b.safe, textSlot(page, 'takeaway'), undefined, 'takeaway');
     area = b.header(area, { eyebrow: textSlot(page, 'eyebrow'), title: textSlot(page, 'title'), subtitle: textSlot(page, 'subtitle') });
     const flow = flowSlot(page, 'flow');
     const n = flow.nodes.length;
@@ -220,7 +220,7 @@ export const codeExplainer: LayoutFamily = {
     const b = new LayoutBuilder(ctx);
     const { page } = ctx;
     b.background();
-    let area = b.ctaBar(b.safe, textSlot(page, 'takeaway'));
+    let area = b.ctaBar(b.safe, textSlot(page, 'takeaway'), undefined, 'takeaway');
     area = b.header(area, { eyebrow: textSlot(page, 'eyebrow'), title: textSlot(page, 'title'), subtitle: textSlot(page, 'subtitle') });
     if ((page.variant ?? 'explainer') === 'cheatsheet') {
       const snippets = cardsSlot(page, 'snippets');
@@ -269,7 +269,7 @@ export const comparison: LayoutFamily = {
     const b = new LayoutBuilder(ctx);
     const { page } = ctx;
     b.background();
-    let area = b.ctaBar(b.safe, textSlot(page, 'verdict'));
+    let area = b.ctaBar(b.safe, textSlot(page, 'verdict'), undefined, 'verdict');
     area = b.header(area, { eyebrow: textSlot(page, 'eyebrow'), title: textSlot(page, 'title'), subtitle: textSlot(page, 'subtitle') });
     const stacked = b.H / b.W > 1.5;
     const gap = b.s(56);

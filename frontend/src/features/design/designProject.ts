@@ -35,14 +35,21 @@ export async function createDesignProject(spec: DesignSpec, templateId?: string)
   return result.id;
 }
 
+/** Template card thumbnails (stable keys). */
 const thumbnailCache = new Map<string, Promise<string>>();
-/** Live previews add an entry per edit; keep only the most recent renders. */
 const MAX_CACHED_THUMBNAILS = 150;
+/** Live previews get a new key per edit; keep only the last few. */
+const previewCache = new Map<string, Promise<string>>();
+const MAX_CACHED_PREVIEWS = 8;
 let queue: Promise<unknown> = Promise.resolve();
 
-/** Render one page to a PNG data URL whose longer edge is `maxEdge` (the page's own size when omitted). */
-function renderPagePng(spec: DesignSpec, pageIndex: number, maxEdge?: number): Promise<string> {
+/** A render that was superseded before its turn in the queue came. */
+export class StaleRenderError extends Error {}
+
+/** Render one page onto a Fabric canvas, one job at a time, and hand the canvas to `draw`. */
+function withPageCanvas<T>(spec: DesignSpec, pageIndex: number, draw: (canvas: fabric.StaticCanvas, size: {width: number; height: number}) => T | Promise<T>, isStale?: () => boolean): Promise<T> {
   const job = queue.then(async () => {
+    if (isStale?.()) throw new StaleRenderError('Preview superseded.');
     await loadDesignFonts(spec);
     const json = await renderDesignPage(fabric, spec, pageIndex, renderOptions);
     const data = JSON.parse(json) as {width: number; height: number};
@@ -50,7 +57,7 @@ function renderPagePng(spec: DesignSpec, pageIndex: number, maxEdge?: number): P
     try {
       await new Promise<void>((resolve) => canvas.loadFromJSON(data, () => resolve()));
       canvas.renderAll();
-      return canvas.toDataURL({format: 'png', multiplier: maxEdge ? maxEdge / Math.max(data.width, data.height) : 1});
+      return await draw(canvas, data);
     } finally {
       canvas.dispose();
     }
@@ -61,23 +68,35 @@ function renderPagePng(spec: DesignSpec, pageIndex: number, maxEdge?: number): P
 
 /** Full-size PNG of a single-page design, downloaded without creating a project. */
 export async function downloadDesignPng(spec: DesignSpec, fileName: string): Promise<void> {
-  const url = await renderPagePng(spec, 0);
+  // A Blob URL, not a data URL: large print sizes exceed what browsers accept in a download data URL.
+  const blob = await withPageCanvas(spec, 0, (canvas) => new Promise<Blob>((resolve, reject) => {
+    (canvas.getElement() as HTMLCanvasElement).toBlob((value) => (value ? resolve(value) : reject(new Error('Could not encode the PNG.'))), 'image/png');
+  }));
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${fileName.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'design'}.png`;
+  // Keep letters in any script (Telugu, Hindi…) so names survive the language phase.
+  link.download = `${fileName.normalize('NFC').replace(/[^\p{L}\p{M}\p{N}\- ]+/gu, '').trim().replace(/\s+/g, '-').toLowerCase() || 'design'}.png`;
   document.body.appendChild(link);
   link.click();
   link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
-/** PNG data URL of one page (the first by default), rendered one at a time to keep the UI responsive. */
-export function designThumbnail(key: string, spec: DesignSpec, maxEdge = 360, pageIndex = 0): Promise<string> {
+/**
+ * PNG data URL of one page (the first by default). `preview` keeps it in a
+ * small separate cache and skips the render if `isStale` says a newer
+ * preview has replaced it while it waited.
+ */
+export function designThumbnail(key: string, spec: DesignSpec, maxEdge = 360, pageIndex = 0, options: {preview?: boolean; isStale?: () => boolean} = {}): Promise<string> {
+  const cache = options.preview ? previewCache : thumbnailCache;
+  const limit = options.preview ? MAX_CACHED_PREVIEWS : MAX_CACHED_THUMBNAILS;
   const cacheKey = `${key}@${maxEdge}#${pageIndex}`;
-  const cached = thumbnailCache.get(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
-  const job = renderPagePng(spec, pageIndex, maxEdge);
-  thumbnailCache.set(cacheKey, job);
-  while (thumbnailCache.size > MAX_CACHED_THUMBNAILS) thumbnailCache.delete(thumbnailCache.keys().next().value!);
-  job.catch(() => thumbnailCache.delete(cacheKey));
+  const job = withPageCanvas(spec, pageIndex, (canvas, size) => canvas.toDataURL({format: 'png', multiplier: maxEdge / Math.max(size.width, size.height)}), options.isStale);
+  cache.set(cacheKey, job);
+  while (cache.size > limit) cache.delete(cache.keys().next().value!);
+  job.catch(() => cache.delete(cacheKey));
   return job;
 }

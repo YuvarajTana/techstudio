@@ -101,7 +101,16 @@
     "gym": "barbell",
     "gated-community": "building-community",
     "metro": "train",
-    "delivery": "truck-delivery"
+    "delivery": "truck-delivery",
+    "briefcase": "briefcase",
+    "hourglass": "hourglass",
+    "laptop": "device-laptop",
+    "user-plus": "user-plus",
+    "user-check": "user-check",
+    "rocket": "rocket",
+    "award": "award",
+    "id-badge": "id-badge-2",
+    "cash": "cash"
   },
   "tablerBrands": {
     "logo:aws": "brand-aws",

@@ -3,6 +3,7 @@ import { requireTheme } from '../themes';
 import { architectureFlow, codeExplainer, comparison, conceptCards } from './families/tech';
 import { justSold, listingHero, openHouse, propertyFeatureGrid } from './families/realEstate';
 import { eventInvite, festivalGreeting, offerPromo } from './families/occasion';
+import { jobPosting } from './families/hiring';
 import type { DesignSpec, LayoutFamily, Primitive } from '../types';
 
 export const LAYOUT_FAMILIES: LayoutFamily[] = [
@@ -17,6 +18,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
   festivalGreeting,
   offerPromo,
   eventInvite,
+  jobPosting,
 ];
 
 const BY_ID = new Map(LAYOUT_FAMILIES.map((family) => [family.id, family]));

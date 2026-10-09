@@ -131,7 +131,7 @@ function SlotField({slot, page, uploads, onChange}: {slot: SlotDef; page: Design
       const cards = Array.isArray(value) ? (value as CardValue[]) : [];
       return (
         <div className={label}>{slot.label}
-          <Rows items={cards} max={slot.maxItems} make={() => (slot.name === 'items' ? {title: 'New item', body: '₹'} : {title: 'New item', body: ''})} onChange={onChange} render={(card, update) => (
+          <Rows items={cards} max={slot.maxItems} make={() => ({title: 'New item', body: ''})} onChange={onChange} render={(card, update) => (
             // Offer items are name + price and have no icon.
             slot.name === 'items' ? (
               <div className="flex gap-1">
@@ -281,6 +281,11 @@ export default function DesignContentPanel() {
       {family.slots.map((slot) => (
         <SlotField key={slot.name} slot={slot} page={page} uploads={uploads} onChange={(value) => updatePage({...page, slots: {...page.slots, [slot.name]: value as never}})} />
       ))}
+      <div className="flex flex-col gap-1.5 border-t border-zinc-800 pt-3">
+        <p className="text-[10px] font-semibold text-zinc-400">Brand (all pages, applied when you re-layout a page)</p>
+        <label className={label}>Name<input className={input} value={draft.brand?.name ?? ''} placeholder="Company name" onChange={(event) => setDraft({...draft, brand: {...draft.brand, name: event.target.value || undefined}})} /></label>
+        <ImagePicker labelText="Logo (replaces the name)" value={draft.brand?.logo} uploads={uploads} onChange={(logo) => setDraft({...draft, brand: {...draft.brand, logo: logo?.src ? logo : undefined}})} />
+      </div>
       <label className={label}>Speaker notes / narration
         <textarea className={`${input} min-h-[56px]`} value={page.notes ?? ''} onChange={(event) => updatePage({...page, notes: event.target.value || undefined})} />
       </label>

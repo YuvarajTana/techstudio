@@ -181,8 +181,15 @@ export function validateDesignSpec(value: unknown): DesignValidation {
   });
   if (errors.length) return { errors, warnings };
 
-  spec.pages.forEach((_, i) => {
-    for (const item of layoutPage(spec, i)) {
+  spec.pages.forEach((page, i) => {
+    const items = layoutPage(spec, i);
+    // A layout may leave out text that has no room; say so instead of dropping it silently.
+    const placed = new Set(items.map((item) => item.slot).filter(Boolean));
+    for (const slot of getLayoutFamily(page.layout)!.slots) {
+      const value = page.slots[slot.name];
+      if (slot.kind === 'text' && isString(value) && value.trim() && !placed.has(slot.name)) warnings.push(`/pages/${i} ${slot.name}: no room for this text in this format; shorten other text or choose a larger format.`);
+    }
+    for (const item of items) {
       if (item.type !== 'text') continue;
       const shown = item.uppercase ? item.text.toUpperCase() : item.text;
       const needed = estimateTextHeight(shown, item.minSize, item.box.w, item.font, item.lineHeight, item.letterSpacing);

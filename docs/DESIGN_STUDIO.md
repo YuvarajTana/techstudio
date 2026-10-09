@@ -23,6 +23,7 @@ flowchart LR
   - Tech: `concept-cards` (numbered, grid, stack, hero), `architecture-flow` (flow, steps, timeline), `code-explainer` (explainer, cheatsheet), `comparison`.
   - Real estate: `listing-hero`, `open-house`, `property-feature-grid` (mosaic, gallery), `just-sold`.
   - Occasions: `festival-greeting` (centered, photo), `offer-promo` (burst, menu), `event-invite` (classic, photo).
+  - Hiring: `job-posting` (single, openings). It has PCS Digital and generic hiring starters; `linkedInCaption()` writes the post text. See the [PCS Digital posting guide](PCS_DIGITAL_POSTING_GUIDE.md).
 - **Indian context.**
   - 23 starters are tagged `region: 'india'` and use `locale: 'en-IN'` (Indian digit grouping).
   - Listings support `facts.bhk`, `facts.facing` and a `legal` fine-print line (RERA).
@@ -71,7 +72,7 @@ The TypeScript contract and `backend/services/lesson_spec.py` share `packages/le
 
 ## Assets
 
-- **Icons.** 147 vendored icons live in `packages/design-spec/src/icons/generated`. They include tech (server, database, queue…), real estate (bed, bath, sq ft, floor plan, map pin, key, compass, gated community, metro…), occasions (gift, candle, rupee, restaurant, trophy…) and tech logos.
+- **Icons.** 156 vendored icons live in `packages/design-spec/src/icons/generated`. They include tech (server, database, queue…), real estate (bed, bath, sq ft, floor plan, map pin, key, compass, gated community, metro…), occasions (gift, candle, rupee, restaurant, trophy…) and tech logos.
   - Regenerate them with `npm run icons:vendor` after editing `required.json`.
   - Licences are recorded per icon. Share-alike logos are rejected.
   - Logos are trademarks; see [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md).

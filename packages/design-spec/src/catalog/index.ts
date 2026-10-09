@@ -2,16 +2,18 @@ import { requireFormat } from '../formats';
 import { TECH_DECKS, TECH_STARTERS } from './tech';
 import { REAL_ESTATE_DECKS, REAL_ESTATE_STARTERS } from './realEstate';
 import { INDIA_BUSINESS, INDIA_EVENTS, INDIA_FESTIVALS, INDIA_REAL_ESTATE, INDIA_TEMPLATES } from './india';
+import { HIRING_TEMPLATES } from './hiring';
+import { PCS_DIGITAL_TEMPLATES } from './pcsDigital';
 import type { DesignSpec } from '../types';
 import type { DesignTemplate } from './types';
 
 export type { DesignOutput, DesignTemplate } from './types';
 export { adaptLegacyPosterTemplate, type LegacyPosterTemplateInput } from './legacy';
 export { TECH_DECKS, TECH_STARTERS, REAL_ESTATE_DECKS, REAL_ESTATE_STARTERS };
-export { INDIA_BUSINESS, INDIA_EVENTS, INDIA_FESTIVALS, INDIA_REAL_ESTATE, INDIA_TEMPLATES };
+export { INDIA_BUSINESS, INDIA_EVENTS, INDIA_FESTIVALS, INDIA_REAL_ESTATE, INDIA_TEMPLATES, HIRING_TEMPLATES, PCS_DIGITAL_TEMPLATES };
 
 /** Hand-written starter templates (posters and decks) for every vertical. */
-export const STARTER_TEMPLATES: DesignTemplate[] = [...TECH_DECKS, ...REAL_ESTATE_DECKS, ...TECH_STARTERS, ...REAL_ESTATE_STARTERS, ...INDIA_TEMPLATES];
+export const STARTER_TEMPLATES: DesignTemplate[] = [...TECH_DECKS, ...REAL_ESTATE_DECKS, ...TECH_STARTERS, ...REAL_ESTATE_STARTERS, ...INDIA_TEMPLATES, ...HIRING_TEMPLATES, ...PCS_DIGITAL_TEMPLATES];
 
 /** A copy of the template's spec in another format/theme, with a fresh id. */
 export function instantiateTemplate(template: DesignTemplate, options: { format?: string; theme?: string; id?: string } = {}): DesignSpec {

@@ -18,6 +18,8 @@ interface StackEntry {
   maxH: number;
   /** Space after this entry in canvas pixels (default 18 reference units). */
   gap?: number;
+  /** May give up height (smaller text) so later entries still fit. */
+  flex?: boolean;
 }
 type Entry = StackEntry | 'ornament';
 
@@ -42,14 +44,12 @@ function ornament(b: LayoutBuilder, cx: number, cy: number, maxHalf: number) {
   }
 }
 
-/**
- * Lay entries out top to bottom. With `center`, the measured block is centred
- * vertically in `area`. Entries that no longer fit are dropped.
- */
-function stack(b: LayoutBuilder, area: Box, entries: Entry[], opts: { center?: boolean } = {}) {
+/** Measure entries top to bottom; `dropped` counts text entries that did not fit. */
+function planStack(b: LayoutBuilder, area: Box, entries: Entry[], flexScale: number) {
   const defaultGap = b.s(18);
   const ornamentH = b.s(28);
   const plan: { entry: Entry; h: number; gap: number }[] = [];
+  let dropped = 0;
   let y = area.y;
   for (const entry of entries) {
     if (entry === 'ornament') {
@@ -60,11 +60,30 @@ function stack(b: LayoutBuilder, area: Box, entries: Entry[], opts: { center?: b
     }
     if (!entry.text.trim()) continue;
     const remaining = area.y + area.h - y;
-    if (remaining < b.s(24)) break;
-    const h = b.measureText(entry.text, { x: area.x, y, w: area.w, h: Math.min(entry.maxH, remaining) }, entry.style);
+    if (remaining < b.s(24)) {
+      dropped += 1;
+      continue;
+    }
+    const maxH = entry.flex ? entry.maxH * flexScale : entry.maxH;
+    const h = b.measureText(entry.text, { x: area.x, y, w: area.w, h: Math.min(maxH, remaining) }, entry.style);
     const gap = entry.gap ?? defaultGap;
     plan.push({ entry, h, gap });
     y += h + gap;
+  }
+  return { plan, dropped };
+}
+
+/**
+ * Lay entries out top to bottom. With `center`, the measured block is centred
+ * vertically in `area`. When entries do not fit, `flex` entries (the big
+ * title) shrink first; anything still left over is dropped, and validation
+ * reports it.
+ */
+function stack(b: LayoutBuilder, area: Box, entries: Entry[], opts: { center?: boolean } = {}) {
+  let { plan, dropped } = planStack(b, area, entries, 1);
+  for (const scale of [0.75, 0.55, 0.4]) {
+    if (!dropped) break;
+    ({ plan, dropped } = planStack(b, area, entries, scale));
   }
   while (plan.length && plan[plan.length - 1].entry === 'ornament') plan.pop();
   if (!plan.length) return;
@@ -138,7 +157,7 @@ export const festivalGreeting: LayoutFamily = {
     ]);
     stack(b, area, [
       { role: 'eyebrow', slot: 'eyebrow', text: textSlot(page, 'eyebrow'), style: { size: 32, minSize: 16, color: b.color.muted, align: 'center', lineHeight: 1.2 }, maxH: b.s(84), gap: b.s(10) },
-      { role: 'title', slot: 'title', text: textSlot(page, 'title'), style: { font: 'heading', size: wide ? 104 : 124, minSize: 36, weight: 800, color: b.color.primary, align: 'center', lineHeight: 1.04 }, maxH: area.h * 0.5 },
+      { role: 'title', slot: 'title', text: textSlot(page, 'title'), style: { font: 'heading', size: wide ? 104 : 124, minSize: 36, weight: 800, color: b.color.primary, align: 'center', lineHeight: 1.04 }, maxH: area.h * 0.5, flex: true },
       'ornament',
       { role: 'message', slot: 'message', text: textSlot(page, 'message'), style: { size: 32, minSize: 15, align: 'center', lineHeight: 1.4 }, maxH: area.h },
     ], { center: true });
@@ -318,7 +337,7 @@ export const eventInvite: LayoutFamily = {
     ]);
     stack(b, area, [
       { role: 'eyebrow', slot: 'eyebrow', text: textSlot(page, 'eyebrow'), style: { size: 26, minSize: 14, weight: 700, color: b.color.primary, align: 'center', uppercase: true, letterSpacing: 3, lineHeight: 1.2 }, maxH: b.s(70), gap: b.s(14) },
-      { role: 'title', slot: 'title', text: textSlot(page, 'title'), style: { font: 'heading', size: wide ? 88 : 100, minSize: 32, weight: 800, color: b.color.primary, align: 'center', lineHeight: 1.06 }, maxH: area.h * 0.36 },
+      { role: 'title', slot: 'title', text: textSlot(page, 'title'), style: { font: 'heading', size: wide ? 88 : 100, minSize: 32, weight: 800, color: b.color.primary, align: 'center', lineHeight: 1.06 }, maxH: area.h * 0.36, flex: true },
       { role: 'subtitle', slot: 'subtitle', text: textSlot(page, 'subtitle'), style: { size: 28, minSize: 14, color: b.color.muted, align: 'center', lineHeight: 1.35 }, maxH: b.s(120) },
       'ornament',
       { role: 'date', slot: 'date', text: textSlot(page, 'date'), style: { font: 'heading', size: 46, minSize: 20, weight: 700, align: 'center', lineHeight: 1.12 }, maxH: b.s(110), gap: b.s(8) },

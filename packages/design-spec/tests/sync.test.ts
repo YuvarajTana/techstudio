@@ -91,3 +91,16 @@ test('library images on the canvas keep their src but not their catalogue id', (
   edit(pages, 0, 'hero', { type: 'image', designPlaceholder: false, assetUrl: '/media/asset-library-full/architecture/003-house.jpg', assetId: 'cur_img_architec_003_photo', assetCategory: 'architecture' });
   assert.deepEqual(specFromPages(spec, pages).spec.pages[0].slots.hero, { src: '/media/asset-library-full/architecture/003-house.jpg', alt: 'Sold property' });
 });
+
+test('takeaway and verdict bars sync back to their own slots', () => {
+  const deck = STARTER_TEMPLATES.find((t) => t.spec.pages.some((p) => p.slots.takeaway) && t.spec.pages.some((p) => p.slots.verdict))!.spec;
+  const pages = canvasPages(deck);
+  const takeawayPage = deck.pages.findIndex((p) => p.slots.takeaway);
+  const verdictPage = deck.pages.findIndex((p) => p.slots.verdict);
+  edit(pages, takeawayPage, 'takeaway', { text: 'Cache what is read often.' });
+  edit(pages, verdictPage, 'verdict', { text: 'Pick REST for public APIs.' });
+  const { spec, changed } = specFromPages(deck, pages);
+  assert.equal(spec.pages[takeawayPage].slots.takeaway, 'Cache what is read often.');
+  assert.equal(spec.pages[verdictPage].slots.verdict, 'Pick REST for public APIs.');
+  assert.equal(changed.length, 2);
+});

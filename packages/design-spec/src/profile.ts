@@ -12,6 +12,15 @@ export interface BusinessProfile {
 }
 
 const REAL_ESTATE = new Set(['listing-hero', 'open-house', 'just-sold']);
+/** Layouts that show the business name as the corner brand mark. */
+const BRANDED = new Set([...REAL_ESTATE, 'job-posting']);
+
+const PROFILE_LAYOUTS = new Set([...BRANDED, 'festival-greeting', 'offer-promo', 'event-invite']);
+
+/** True when `applyBusinessProfile` changes something in this design. */
+export function usesBusinessProfile(spec: DesignSpec): boolean {
+  return spec.pages.some((page) => PROFILE_LAYOUTS.has(page.layout));
+}
 
 /**
  * A copy of `spec` with the profile written into the slots each layout uses
@@ -53,6 +62,6 @@ export function applyBusinessProfile(spec: DesignSpec, profile: BusinessProfile)
         }
     }
   }
-  if (name && next.pages.some((page) => REAL_ESTATE.has(page.layout))) next.brand = { ...next.brand, name };
+  if (name && next.pages.some((page) => BRANDED.has(page.layout))) next.brand = { ...next.brand, name };
   return next;
 }

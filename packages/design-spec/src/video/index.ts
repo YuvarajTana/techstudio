@@ -202,6 +202,18 @@ function pageScenes(page: DesignPage, spec: DesignSpec, single: boolean, b: Buil
       if (from || contact) out.push({ id: id('from'), type: 'logo', variant: 'outro', durationFrames: 120, title: clip(from || spec.brand?.name || title, 96), contact: clip(contact, 180) || undefined });
       break;
     }
+    case 'job-posting': {
+      const kicker = textSlot(page, 'eyebrow');
+      out.push({ id: id('title'), type: 'title', durationFrames: readFrames(words(kicker, title), 105, 180), title: clip(title, 96) || spec.title, subtitle: clip(textSlot(page, 'subtitle') || kicker, 240) || clip(spec.title, 240), easing: 'spring' });
+      if (page.variant === 'openings') bulletsSlide('roles', kicker || title, cardsSlot(page, 'roles').map((role) => (role.body ? `${role.title} · ${role.body}` : role.title)));
+      else {
+        bulletsSlide('details', title, cardsSlot(page, 'details').map((item) => (item.body ? `${item.title}: ${item.body}` : item.title)));
+        const skills = listSlot(page, 'skills');
+        if (skills.length) statement('skills', 'Skills', skills.join(' · '));
+      }
+      if (textSlot(page, 'cta')) statement('apply', textSlot(page, 'tag') || 'Apply now', textSlot(page, 'cta'));
+      break;
+    }
     case 'offer-promo': {
       const photo = b.photo(imageSlot(page, 'image'));
       const offer = textSlot(page, 'offer');
@@ -252,7 +264,9 @@ function headerName(spec: DesignSpec): string {
   const page = spec.pages[0];
   if (page.layout === 'festival-greeting') return textSlot(page, 'sender');
   if (page.layout === 'offer-promo') return textSlot(page, 'title');
-  if (page.layout === 'event-invite') return textSlot(page, 'eyebrow');
+  // Invitations: the names or event, not the lead-in line ("Together with their families").
+  if (page.layout === 'event-invite') return textSlot(page, 'title');
+  if (page.layout === 'job-posting') return textSlot(page, 'eyebrow');
   return '';
 }
 

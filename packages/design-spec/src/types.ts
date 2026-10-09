@@ -7,7 +7,7 @@
 
 export type FormatKind = 'social' | 'print' | 'slide' | 'video' | 'web';
 /** Use case a template, theme or layout family is written for. */
-export type Vertical = 'tech' | 'real-estate' | 'business' | 'festival' | 'events' | 'education' | 'generic';
+export type Vertical = 'tech' | 'real-estate' | 'business' | 'festival' | 'events' | 'education' | 'hiring' | 'generic';
 export type LayoutClass = 'wide' | 'tall' | 'square';
 export type VideoPresetId = 'landscape-1080p' | 'portrait-1080p' | 'square-1080' | 'portrait-4x5';
 

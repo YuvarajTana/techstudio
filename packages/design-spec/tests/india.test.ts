@@ -114,6 +114,7 @@ test('occasion layouts map to promotion videos with an outro', () => {
   assert.ok(sale.scenes.some((s) => s.type === 'slide' && s.title.toUpperCase().includes('40%')), 'offer statement');
 
   const invite = toCreativeVideo(byId('ds-in-wedding-invite').spec);
+  assert.equal(invite.brand.name, 'Ananya & Karthik');
   assert.ok(invite.scenes.some((s) => s.type === 'slide' && s.title.includes('10 December')), 'date statement');
 
   const listing = toCreativeVideo(byId('ds-in-3bhk-apartment').spec).scenes.find((s) => s.type === 'listing');
@@ -160,4 +161,22 @@ test('text with ₹ moves from a heading font without the glyph to the body font
   // Playfair Display has ₹, so Playfair themes keep their heading font.
   const marigold = layoutPage(byId('ds-in-diwali-sale').spec, 0);
   assert.equal((marigold.find((item) => item.type === 'text' && item.slot === 'items.0.body') as { font: string }).font, 'heading');
+});
+
+test('text that has no room is reported instead of silently dropped', () => {
+  const invite = instantiateTemplate(byId('ds-in-naming-ceremony'), { format: 'square', id: 'x' });
+  invite.pages[0].slots.subtitle = 'We would be delighted to have you with us as we name our little one.';
+  invite.pages[0].slots.venue = 'Sri Krishna Function Hall, Road No. 12, Banjara Hills, Hyderabad';
+  const placed = new Set(layoutPage(invite, 0).map((item) => item.slot));
+  const { warnings } = validateDesignSpec(invite);
+  for (const slot of ['title', 'date', 'time', 'venue', 'subtitle']) {
+    if (!placed.has(slot)) assert.ok(warnings.some((w) => w.includes(` ${slot}: no room`)), `${slot} dropped without a warning`);
+  }
+  // The big names shrink first, so date and venue survive on the sample text.
+  for (const id of ['ds-in-wedding-invite', 'ds-in-griha-pravesh']) {
+    const spec = instantiateTemplate(byId(id), { format: 'square', id: 'x' });
+    spec.pages[0].variant = 'photo';
+    const slots = new Set(layoutPage(spec, 0).map((item) => item.slot));
+    assert.ok(slots.has('date') && slots.has('venue'), `${id}: ${[...slots].join(',')}`);
+  }
 });

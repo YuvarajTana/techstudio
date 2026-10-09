@@ -300,15 +300,18 @@ export class LayoutBuilder {
     return { x: area.x, y, w: area.w, h: area.y + area.h - y };
   }
 
-  /** Full-width call-to-action bar at the bottom of `area`; returns the area above it. */
-  ctaBar(area: Box, text: string | undefined, tag?: string): Box {
+  /**
+   * Full-width call-to-action bar at the bottom of `area`; returns the area above it.
+   * `slot` names the slot the bar's text comes from, so canvas edits sync back to it.
+   */
+  ctaBar(area: Box, text: string | undefined, tag?: string, slot = 'cta'): Box {
     if (!text?.trim() && !tag?.trim()) return area;
     const h = this.s(this.cls === 'wide' ? 84 : 96);
     const box = { x: area.x, y: area.y + area.h - h, w: area.w, h };
     this.rect('cta-bar', box, this.color.primary, { radius: this.s(Math.min(this.theme.radius, 48)) });
     const pad = this.s(32);
     const tagW = tag?.trim() ? Math.min(box.w * 0.34, this.s(300)) : 0;
-    this.text('cta', 'cta', text, { x: box.x + pad, y: box.y + this.s(22), w: box.w - pad * 2 - tagW, h: h - this.s(40) }, { size: 32, minSize: 18, weight: 700, color: this.color.onPrimary });
+    this.text('cta', slot, text, { x: box.x + pad, y: box.y + this.s(22), w: box.w - pad * 2 - tagW, h: h - this.s(40) }, { size: 32, minSize: 18, weight: 700, color: this.color.onPrimary });
     if (tagW) this.text('cta-tag', 'tag', tag, { x: box.x + box.w - pad - tagW, y: box.y + this.s(26), w: tagW, h: h - this.s(44) }, { size: 24, minSize: 14, weight: 600, color: this.color.onPrimary, align: 'right' });
     return { ...area, h: area.h - h - this.s(28) };
   }

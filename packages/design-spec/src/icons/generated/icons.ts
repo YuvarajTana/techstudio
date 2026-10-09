@@ -1427,6 +1427,127 @@ export const ICONS: Record<string, IconDef> = {
   "license": "MIT",
   "trademark": false
  },
+ "briefcase": {
+  "set": "tabler",
+  "slug": "briefcase",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M3 9a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -9",
+   "M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2",
+   "M12 12l0 .01",
+   "M3 13a20 20 0 0 0 18 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "hourglass": {
+  "set": "tabler",
+  "slug": "hourglass",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M6.5 7h11",
+   "M6.5 17h11",
+   "M6 20v-2a6 6 0 1 1 12 0v2a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1",
+   "M6 4v2a6 6 0 1 0 12 0v-2a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "laptop": {
+  "set": "tabler",
+  "slug": "device-laptop",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M3 19l18 0",
+   "M5 7a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1l0 -8"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "user-plus": {
+  "set": "tabler",
+  "slug": "user-plus",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0",
+   "M16 19h6",
+   "M19 16v6",
+   "M6 21v-2a4 4 0 0 1 4 -4h4"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "user-check": {
+  "set": "tabler",
+  "slug": "user-check",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0",
+   "M6 21v-2a4 4 0 0 1 4 -4h4",
+   "M15 19l2 2l4 -4"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "rocket": {
+  "set": "tabler",
+  "slug": "rocket",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M4 13a8 8 0 0 1 7 7a6 6 0 0 0 3 -5a9 9 0 0 0 6 -8a3 3 0 0 0 -3 -3a9 9 0 0 0 -8 6a6 6 0 0 0 -5 3",
+   "M7 14a6 6 0 0 0 -3 6a6 6 0 0 0 6 -3",
+   "M14 9a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "award": {
+  "set": "tabler",
+  "slug": "award",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M6 9a6 6 0 1 0 12 0a6 6 0 1 0 -12 0",
+   "M12 15l3.4 5.89l1.598 -3.233l3.598 .232l-3.4 -5.889",
+   "M6.802 12l-3.4 5.89l3.598 -.233l1.598 3.232l3.4 -5.889"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "id-badge": {
+  "set": "tabler",
+  "slug": "id-badge-2",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M7 12h3v4h-3l0 -4",
+   "M10 6h-6a1 1 0 0 0 -1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1 -1v-12a1 1 0 0 0 -1 -1h-6",
+   "M10 4a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -3",
+   "M14 16h2",
+   "M14 12h4"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "cash": {
+  "set": "tabler",
+  "slug": "cash",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M7 15h-3a1 1 0 0 1 -1 -1v-8a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v3",
+   "M7 10a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1l0 -8",
+   "M12 14a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
  "logo:aws": {
   "set": "tabler",
   "slug": "brand-aws",

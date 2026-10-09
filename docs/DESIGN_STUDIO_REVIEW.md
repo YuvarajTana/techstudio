@@ -60,14 +60,16 @@ flowchart LR
       F --> L[Live preview<br/>debounced re-render]
       Z[Size tiles · colour swatches] --> L
     end
-    C -->|Download PNG| PNG[1080px PNG<br/>no project created]
+    C -->|Download PNG| PNG[Full-size PNG<br/>the format's own pixels<br/>no project created]
     C -->|Create poster / deck| E[Editor + Content tab]
     C -->|Create motion video| V[Video workspace]
 ```
 
 ### Shared package (`packages/design-spec`)
 
-- **New layout families** (`layout/families/occasion.ts`). All of them lay out in every format, and all are covered by the existing geometry tests: every family × format × theme, no text outside the page, no text overlap.
+- **New layout families** (`layout/families/occasion.ts`).
+  - The geometry tests lay out each family/variant used by a starter in every format, with the first and last theme, and check for text outside the page and overlapping text.
+  - Text that a layout has no room for is reported as a validation warning, not dropped silently (see "Review follow-up").
   - `festival-greeting` (`centered`, `photo`): lead-in, big greeting, ornament, message, then a sender and contact line pinned to the bottom. The text block is measured and centred vertically.
   - `offer-promo` (`burst`, `menu`):
     - `burst`: offer badge on the product photo plus ₹ price tiles.
@@ -75,7 +77,9 @@ flowchart LR
     - Both have a validity / address / phone panel and a fine-print line.
   - `event-invite` (`classic`, `photo`): double frame, occasion, names, invitation line, date, time / muhurtham, venue, hosts and RSVP.
 - **Indian themes:** `marigold`, `diwali-night`, `rangoli`, `kasavu`, `shaadi-maroon`, `tiranga` and `bazaar`.
-  - New decorations, all kept inside the page margins: `toran` (bunting), `mandala` (corner rings), `kolam` (dotted frame), `kasavu` (gold bands) and `tiranga` (saffron and green bands).
+  - New decorations:
+    - `toran` (bunting), `kolam` (dotted frame), `kasavu` (gold bands) and `tiranga` (saffron and green bands) stay inside the page margins.
+    - `mandala` (corner rings) is faint background art (22% opacity) that sits behind content.
   - A test enforces contrast: text ≥ 7:1, muted text ≥ 4.5:1, primary and on-primary ≥ 3:1.
   - The themes are registered in the video contract (`VIDEO_THEME_IDS` and the JSON schema), so the backend accepts them.
 - **Listings:**
@@ -120,6 +124,40 @@ flowchart LR
 | Real estate | 3 BHK apartment (₹ Cr, facing, RERA line), Open plots (₹ / sq yd, DTCP), Weekend site visit, Residential project deck (4 slides) |
 
 Names, phone numbers (`+91 90000 12345`) and addresses are samples. The RERA line reads "add yours here" on purpose.
+
+## Hiring posts and PCS Digital (October 9, 2026, later the same day)
+
+- **New layout family `job-posting`** (`layout/families/hiring.ts`):
+  - `single`: kicker, role, subtitle, skill chips, key-fact tiles with icons, an apply bar with a tag, and fine print.
+  - `openings`: up to 8 role rows.
+  - New vertical `hiring` and a **Hiring** filter in the Studio. Nine more icons, 156 in total.
+- **Templates:**
+  - Generic: one role, multiple openings, walk-in drive, internship, employee referral.
+  - Four **PCS Digital** templates (`catalog/pcsDigital.ts`), modelled on the company's own posts: immediate hiring (SAP), a role with skills (Databricks), current openings, and festival wishes.
+  - They use the logo's blue and orange through `brand` colours and `contact@pcsdigitaltech.com`.
+- **`linkedInCaption(spec)`** writes the post text in the same structure, and the chooser has **Copy LinkedIn caption** for job posts.
+- **Logo:** the Content tab has a **Brand** section (name and logo) that applies to every page.
+- **Guide:** [PCS_DIGITAL_POSTING_GUIDE](PCS_DIGITAL_POSTING_GUIDE.md).
+
+### Review follow-up
+
+An independent review of the first commit found no critical issues. Fixed:
+
+- **Dropped text.** Invitation and greeting stacks dropped entries silently when space ran out, e.g. time and venue on a square naming-ceremony card with a long venue.
+  - The big title now shrinks first.
+  - `validateDesignSpec` warns for any non-empty text slot the layout could not place.
+  - That check also exposed a **pre-existing bug**: the takeaway and verdict bars on tech posters were tagged as slot `cta`, so canvas edits to them were never read back into the design or the video. `ctaBar` now takes the real slot name, and a sync test covers it.
+- **Profile layout list.** The chooser asks `usesBusinessProfile()` instead of keeping its own copy of the list.
+- **Live previews.** They use a separate cache of eight, renders that were superseded while queued are skipped, and slide thumbnails are keyed by their own page.
+- **Download PNG.**
+  - It uses a Blob URL instead of a data URL, because large print sizes can exceed what browsers accept in a download data URL.
+  - The file name keeps letters in any script.
+- **Offer items.** New items start with an empty price, not a bare "₹".
+- **Chooser accessibility.**
+  - Focus moves into the dialog, so Escape works at once, and returns to the card on close.
+  - The preview image has alt text.
+  - Over-limit fields are `aria-invalid`, with a visible "Too long" message linked to the field.
+- **Invitation videos.** The header shows the names, not the "Together with their families" lead-in.
 
 ## Next phase: Indian languages (plan, not implemented)
 
@@ -185,9 +223,9 @@ There are two separate tracks:
 
 | Check | Result |
 |---|---|
-| `npm run test` (design-spec + video contract) | 34 + 14 tests pass |
+| `npm run test` (design-spec + video contract) | 41 + 14 tests pass (after the hiring work) |
 | `pytest test_creative_spec_parity.py test_design_video_parity.py test_lesson_video.py` | 27 pass (backend accepts the new themes and layouts through the shared JSON schema) |
-| `npm run verify:design` (real Fabric in headless Chrome) | 225 cases, 0 issues; contact sheet reviewed |
+| `npm run verify:design` (real Fabric in headless Chrome) | 269 cases, 0 issues (after the hiring work); contact sheet reviewed |
 | Remotion stills for the sale, 3 BHK and wedding templates | Render with the new themes; ₹ draws in Inter |
 | `tsc -b`, `vite build`, `eslint src/features/design` | Clean (existing Dashboard warnings unchanged) |
 | Studio, chooser, deck strip, mobile width, PNG download | Checked by screenshot against a production build with the API mocked. Project creation against the real API was **not** exercised here |
