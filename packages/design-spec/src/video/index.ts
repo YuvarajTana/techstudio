@@ -166,7 +166,8 @@ function pageScenes(page: DesignPage, spec: DesignSpec, single: boolean, b: Buil
         address: clip(textSlot(page, 'address'), 120) || spec.title,
         price: clip(textSlot(page, 'price'), 40),
         photoAssetIds: photos.slice(0, 8),
-        facts: { beds: facts.beds, baths: facts.baths, sqft: facts.sqft === undefined ? undefined : Math.round(facts.sqft), lot: facts.lot ? clip(facts.lot, 32) : undefined, parking: facts.parking === undefined ? undefined : Math.round(facts.parking) },
+        // The video listing scene has no BHK or facing chip yet: BHK shows as beds, facing as the lot line.
+        facts: { beds: facts.bhk ?? facts.beds, baths: facts.baths, sqft: facts.sqft === undefined ? undefined : Math.round(facts.sqft), lot: facts.lot || facts.facing ? clip(facts.lot || facts.facing, 32) : undefined, parking: facts.parking === undefined ? undefined : Math.round(facts.parking) },
         features: features.map((f) => clip(f, 60)).slice(0, 5),
         pan: 'kenburns',
         stagger: true,
@@ -184,6 +185,33 @@ function pageScenes(page: DesignPage, spec: DesignSpec, single: boolean, b: Buil
       if (photo || bullets.length) {
         out.push({ id: id('features'), type: 'slide', layout: photo ? 'split-image' : 'title-bullets', imageAssetId: photo, durationFrames: readFrames(words(title, ...bullets), 150), title: clip(title, 96) || spec.title, body: clip(textSlot(page, 'subtitle'), 400) || undefined, bullets: bullets.length ? bullets : undefined, stagger: true, easing: 'spring' });
       } else statement('title', title, textSlot(page, 'subtitle'));
+      break;
+    }
+    case 'festival-greeting':
+    case 'event-invite': {
+      const invite = page.layout === 'event-invite';
+      const lead = textSlot(page, 'eyebrow');
+      const photo = b.photo(imageSlot(page, 'image'));
+      const body = invite ? textSlot(page, 'subtitle') : textSlot(page, 'message');
+      out.push({ id: id('title'), type: 'title', durationFrames: readFrames(words(lead, title), 105, 180), title: clip(title, 96) || spec.title, subtitle: clip(lead || body, 240) || clip(spec.title, 240), easing: 'spring' });
+      if (photo) out.push({ id: id('photo'), type: 'slide', layout: 'split-image', imageAssetId: photo, durationFrames: readFrames(words(title, body), 120, 240), title: clip(title, 96) || spec.title, body: clip(body, 400) || undefined, easing: 'ease' });
+      else if (body && lead) statement('message', title, body);
+      if (invite) statement('when', textSlot(page, 'date'), [textSlot(page, 'time'), textSlot(page, 'venue')].filter(Boolean).join(' · '));
+      const from = invite ? textSlot(page, 'hosts') : textSlot(page, 'sender');
+      const contact = invite ? textSlot(page, 'rsvp') : textSlot(page, 'contact');
+      if (from || contact) out.push({ id: id('from'), type: 'logo', variant: 'outro', durationFrames: 120, title: clip(from || spec.brand?.name || title, 96), contact: clip(contact, 180) || undefined });
+      break;
+    }
+    case 'offer-promo': {
+      const photo = b.photo(imageSlot(page, 'image'));
+      const offer = textSlot(page, 'offer');
+      const heading = textSlot(page, 'eyebrow') || title;
+      statement('offer', offer || heading, [offer ? title : '', textSlot(page, 'subtitle')].filter(Boolean).join(' · '));
+      const items = cardsSlot(page, 'items').map((item) => (item.body ? `${item.title} · ${item.body}` : item.title));
+      if (photo) out.push({ id: id('photo'), type: 'slide', layout: 'split-image', imageAssetId: photo, durationFrames: readFrames(words(title, ...items), 150), title: clip(title, 96) || spec.title, bullets: items.length ? items.map((item) => clip(item, 120)).slice(0, 6) : undefined, stagger: true, easing: 'spring' });
+      else bulletsSlide('items', title, items);
+      const contact = [textSlot(page, 'phone'), textSlot(page, 'address')].filter(Boolean).join(' · ');
+      out.push({ id: id('visit'), type: 'logo', variant: 'outro', durationFrames: 120, title: clip(spec.brand?.name || title, 96), subtitle: clip(textSlot(page, 'validity'), 160) || undefined, contact: clip(contact, 180) || undefined });
       break;
     }
   }
@@ -213,6 +241,19 @@ function fitDurations(scenes: CreativeScene[]): void {
     if (scene.type === 'code' && scene.highlights) scene.highlights = scene.highlights.filter((h) => h.atFrame < scene.durationFrames - 1);
     if (scene.type === 'diagram') scene.steps = scene.steps.filter((s, i) => i === 0 || s.atFrame < scene.durationFrames - 1);
   }
+}
+
+/**
+ * Name shown in the video header. Occasion designs carry it in their slots
+ * (greeting sender, shop name, invitation occasion) rather than in `brand`.
+ */
+function headerName(spec: DesignSpec): string {
+  if (spec.brand?.name?.trim()) return spec.brand.name;
+  const page = spec.pages[0];
+  if (page.layout === 'festival-greeting') return textSlot(page, 'sender');
+  if (page.layout === 'offer-promo') return textSlot(page, 'title');
+  if (page.layout === 'event-invite') return textSlot(page, 'eyebrow');
+  return '';
 }
 
 /** Build a creative-video/v2 spec from a DesignSpec. Throws if the result is invalid. */
@@ -249,11 +290,12 @@ export function toCreativeVideo(spec: DesignSpec, options: VideoMappingOptions =
     id: safeId(spec.id).slice(0, 80),
     title: clip(spec.title, 160) || 'Untitled video',
     locale: 'en',
-    purpose: theme.vertical === 'real-estate' ? 'promotion' : 'explainer',
+    // Marketing layouts (listings, offers, greetings, invites) promote; lessons explain.
+    purpose: spec.pages.some((page) => requireLayoutFamily(page.layout).vertical !== 'tech') ? 'promotion' : 'explainer',
     output: { preset: options.preset ?? format.videoPreset, fps: 30 },
     style: { themeId: theme.id as NonNullable<CreativeVideoSpec['style']>['themeId'] },
     brand: {
-      name: clip(spec.brand?.name, 120),
+      name: clip(headerName(spec), 120),
       tagline: '',
       primaryColor: theme.color.accent,
       accentColor: theme.color.primary,

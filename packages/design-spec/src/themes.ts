@@ -35,6 +35,42 @@ export const THEMES: ThemeTokens[] = [
     color: { background: '#0e0e0f', surface: '#1a1a1c', surfaceAlt: '#232326', border: '#3a3326', text: '#f6f1e7', muted: '#bdb4a3', primary: '#c9a45c', accent: '#e8d5a8', onPrimary: '#16130c' },
     font: { heading: font.playfair, body: font.inter, mono: font.mono }, radius: 2, decoration: 'rule',
   },
+  // Indian festive and business palettes.
+  {
+    id: 'marigold', label: 'Marigold', mode: 'light', vertical: 'festival',
+    color: { background: '#fff8ec', surface: '#ffffff', surfaceAlt: '#ffeccc', border: '#f2c27b', text: '#3b1a0b', muted: '#7a4524', primary: '#c2410c', accent: '#d97706', onPrimary: '#ffffff' },
+    font: { heading: font.playfair, body: font.inter, mono: font.mono }, radius: 18, decoration: 'toran',
+  },
+  {
+    id: 'diwali-night', label: 'Diwali Night', mode: 'dark', vertical: 'festival',
+    color: { background: '#140a2b', surface: '#241347', surfaceAlt: '#1b0e38', border: '#8a5a12', text: '#fff7e6', muted: '#e3d2ad', primary: '#f5b301', accent: '#ff8a3d', onPrimary: '#1a0f00' },
+    font: { heading: font.playfair, body: font.inter, mono: font.mono }, radius: 18, decoration: 'mandala',
+  },
+  {
+    id: 'rangoli', label: 'Rangoli', mode: 'light', vertical: 'festival',
+    color: { background: '#fff5fa', surface: '#ffffff', surfaceAlt: '#fde3f0', border: '#f2a7cb', text: '#2b0f2c', muted: '#6b3a64', primary: '#be185d', accent: '#0f766e', onPrimary: '#ffffff' },
+    font: { heading: font.outfit, body: font.inter, mono: font.mono }, radius: 22, decoration: 'kolam',
+  },
+  {
+    id: 'kasavu', label: 'Kasavu', mode: 'light', vertical: 'festival',
+    color: { background: '#fbf7ea', surface: '#fffdf5', surfaceAlt: '#f3ead0', border: '#c9a227', text: '#1f2a1a', muted: '#55604a', primary: '#1d5b25', accent: '#b8901c', onPrimary: '#ffffff' },
+    font: { heading: font.playfair, body: font.inter, mono: font.mono }, radius: 10, decoration: 'kasavu',
+  },
+  {
+    id: 'shaadi-maroon', label: 'Shaadi Maroon', mode: 'dark', vertical: 'events',
+    color: { background: '#3d0a17', surface: '#561226', surfaceAlt: '#2e0711', border: '#b8913f', text: '#fff4e0', muted: '#ecd3a9', primary: '#e6b450', accent: '#f59e7b', onPrimary: '#2a0710' },
+    font: { heading: font.playfair, body: font.inter, mono: font.mono }, radius: 14, decoration: 'mandala',
+  },
+  {
+    id: 'tiranga', label: 'Tiranga', mode: 'light', vertical: 'festival',
+    color: { background: '#ffffff', surface: '#f8fafc', surfaceAlt: '#eef2f7', border: '#cbd5e1', text: '#0b1f4d', muted: '#40506b', primary: '#d4600a', accent: '#138808', onPrimary: '#ffffff' },
+    font: { heading: font.outfit, body: font.inter, mono: font.mono }, radius: 16, decoration: 'tiranga',
+  },
+  {
+    id: 'bazaar', label: 'Bazaar Bold', mode: 'light', vertical: 'business',
+    color: { background: '#fffbea', surface: '#ffffff', surfaceAlt: '#fff1b8', border: '#facc15', text: '#1c1917', muted: '#57534e', primary: '#dc2626', accent: '#ca8a04', onPrimary: '#ffffff' },
+    font: { heading: font.outfit, body: font.inter, mono: font.mono }, radius: 20, decoration: 'rule',
+  },
 ];
 
 const BY_ID = new Map(THEMES.map((theme) => [theme.id, theme]));

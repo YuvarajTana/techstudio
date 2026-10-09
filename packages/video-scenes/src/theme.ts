@@ -35,7 +35,8 @@ export function sceneTheme(spec: CreativeVideoSpec): SceneTheme {
       themed: false,
     };
   }
-  const font = (family: string, fallback: string) => `"${family}", ${fallback}`;
+  // Inter backs up every theme font for glyphs it lacks (₹ is missing from Outfit and JetBrains Mono).
+  const font = (family: string, fallback: string) => (family === "Inter" ? `"Inter", ${fallback}` : `"${family}", "Inter", ${fallback}`);
   return {
     background: theme.color.background,
     surface: theme.color.surface,

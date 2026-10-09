@@ -1,3 +1,4 @@
+import { fontCovers } from '../fonts';
 import { layoutClass } from '../formats';
 import { themeWithBrand } from '../themes';
 import type { Box, ImageValue, LayoutClass, LayoutContext, Primitive, ThemeTokens } from '../types';
@@ -118,11 +119,13 @@ export class LayoutBuilder {
     this.items.push({ id: this.nextId(role), type: 'rect', role, box: round(box), fill, ...extra });
   }
 
-  text(role: string, slot: string | undefined, value: string | undefined, box: Box, style: TextStyle): number {
-    const text = (value ?? '').trim();
-    if (!text) return 0;
-    const font = style.font ?? 'body';
-    const lineHeight = style.lineHeight ?? (font === 'heading' ? 1.08 : 1.3);
+  /** Resolved size, minimum, spacing and the height `text()` would use in `box`. */
+  private fit(text: string, box: Box, style: TextStyle) {
+    let font = style.font ?? 'body';
+    // A heading font without a glyph (e.g. ₹ in Outfit) hands the text to the body font.
+    const fonts = this.theme.font;
+    if (font !== 'body' && !fontCovers(fonts[font].family, text) && fontCovers(fonts.body.family, text)) font = 'body';
+    const lineHeight = style.lineHeight ?? ((style.font ?? 'body') === 'heading' ? 1.08 : 1.3);
     const size = this.s(style.size);
     // Never shrink below ~10px on the real canvas; overflow is reported instead.
     const minSize = Math.min(size, Math.max(MIN_READABLE_PX, this.s(style.minSize ?? Math.max(14, style.size * 0.55))));
@@ -130,6 +133,19 @@ export class LayoutBuilder {
     const letterSpacing = style.letterSpacing ? this.s(style.letterSpacing) : undefined;
     const fitted = fitTextSize(shown, box, size, minSize, font, lineHeight, letterSpacing);
     const used = Math.min(box.h, estimateTextHeight(shown, fitted, box.w, font, lineHeight, letterSpacing));
+    return { font, lineHeight, minSize, letterSpacing, fitted, used };
+  }
+
+  /** Height `text()` would use for `value` in `box`, without adding anything. */
+  measureText(value: string | undefined, box: Box, style: TextStyle): number {
+    const text = (value ?? '').trim();
+    return text ? this.fit(text, box, style).used : 0;
+  }
+
+  text(role: string, slot: string | undefined, value: string | undefined, box: Box, style: TextStyle): number {
+    const text = (value ?? '').trim();
+    if (!text) return 0;
+    const { font, lineHeight, minSize, letterSpacing, fitted, used } = this.fit(text, box, style);
     this.items.push({
       id: this.nextId(role),
       type: 'text',
@@ -193,7 +209,69 @@ export class LayoutBuilder {
       this.rect('decoration-glow', { x: -r * 0.9, y: this.H - r * 1.1, w: r * 1.6, h: r * 1.6 }, this.color.accent, { radius: r * 0.8, opacity: 0.07 });
     } else if (decoration === 'rule') {
       this.rect('decoration-rule', { x: 0, y: 0, w: this.W, h: this.s(10) }, this.color.primary);
+    } else if (decoration === 'toran') {
+      // Marigold bunting strung along the top edge, inside the top margin.
+      const y = this.s(14);
+      const step = this.s(54);
+      const d = this.s(22);
+      this.line('decoration-toran', [0, y, this.W, y], this.color.accent, Math.max(1, this.s(3)), { opacity: 0.8 });
+      for (let i = 0, x = step / 2; x < this.W; i += 1, x += step) {
+        this.rect('decoration-toran', { x: x - d / 2, y: y - d / 2, w: d, h: d }, i % 2 ? this.color.accent : this.color.primary, { radius: d / 2 });
+        if (i % 2 === 0) this.rect('decoration-toran', { x: x - d / 4, y: y + d * 0.75, w: d / 2, h: d / 2 }, this.color.border, { radius: d / 4 });
+      }
+    } else if (decoration === 'mandala') {
+      // Concentric rings bleeding off two opposite corners.
+      const r = Math.min(this.W, this.H) * 0.34;
+      for (const [cx, cy] of [[this.W, 0], [0, this.H]]) {
+        for (const k of [1, 0.78, 0.56, 0.34]) {
+          const rr = r * k;
+          this.rect('decoration-mandala', { x: cx - rr, y: cy - rr, w: rr * 2, h: rr * 2 }, 'transparent', { radius: rr, stroke: this.color.primary, strokeWidth: Math.max(1, this.s(k === 1 ? 3 : 2)), opacity: 0.22 });
+        }
+      }
+    } else if (decoration === 'kolam') {
+      // Dotted frame, like a kolam / rangoli border.
+      const pad = this.s(16);
+      const step = this.s(36);
+      const d = Math.max(2, this.s(7));
+      const dot = (x: number, y: number, i: number) => this.rect('decoration-kolam', { x: x - d / 2, y: y - d / 2, w: d, h: d }, i % 3 ? this.color.border : this.color.primary, { radius: d / 2, opacity: 0.85 });
+      const nx = Math.max(1, Math.round((this.W - pad * 2) / step));
+      const ny = Math.max(1, Math.round((this.H - pad * 2) / step));
+      for (let i = 0; i <= nx; i += 1) {
+        const x = pad + ((this.W - pad * 2) * i) / nx;
+        dot(x, pad, i);
+        dot(x, this.H - pad, i);
+      }
+      for (let i = 1; i < ny; i += 1) {
+        const y = pad + ((this.H - pad * 2) * i) / ny;
+        dot(pad, y, i);
+        dot(this.W - pad, y, i);
+      }
+    } else if (decoration === 'kasavu') {
+      // Gold border bands, as on a Kerala kasavu saree.
+      const band = this.s(12);
+      this.rect('decoration-kasavu', { x: 0, y: 0, w: this.W, h: band }, this.color.accent);
+      this.rect('decoration-kasavu', { x: 0, y: this.H - band, w: this.W, h: band }, this.color.accent);
+      this.line('decoration-kasavu', [0, band * 1.9, this.W, band * 1.9], this.color.accent, Math.max(1, this.s(2)), { opacity: 0.7 });
+    } else if (decoration === 'tiranga') {
+      const band = this.s(14);
+      this.rect('decoration-tiranga', { x: 0, y: 0, w: this.W, h: band }, this.color.primary);
+      this.rect('decoration-tiranga', { x: 0, y: this.H - band, w: this.W, h: band }, this.color.accent);
     }
+  }
+
+  /**
+   * One line of fine print (RERA number, offer terms) in the bottom margin,
+   * left of the brand mark. `column` limits it to part of the page width.
+   */
+  footnote(slot: string, value: string | undefined, column: { x: number; w: number } = { x: this.margin, w: this.W - this.margin * 2 }) {
+    const text = (value ?? '').trim();
+    if (!text) return;
+    const brand = this.ctx.brand;
+    const reserved = brand?.name || brand?.logo?.src ? this.s(340) : 0;
+    const right = Math.min(column.x + column.w, this.W - this.margin - reserved);
+    const h = this.s(40);
+    const box = { x: column.x, y: this.H - this.margin * 0.55 - h / 2, w: Math.max(1, right - column.x), h };
+    this.text('footnote', slot, text, box, { size: 18, minSize: 11, color: this.color.muted, lineHeight: 1.15, opacity: 0.9 });
   }
 
   /**

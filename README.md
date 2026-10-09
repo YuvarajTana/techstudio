@@ -28,8 +28,14 @@ the [product deep dive and improvement plan](docs/PRODUCT_DEEP_DIVE.md), and the
 opens as a standalone HTML document or at `http://127.0.0.1:5173/guide.html` while running locally.
 
 **Design Studio (September 2026).** One template → poster, slide deck or motion video, with
-tech-teaching and real-estate starters, 122 vendored icons, self-hosted fonts, multi-page PDF and
+tech-teaching and real-estate starters, 147 vendored icons, self-hosted fonts, multi-page PDF and
 Remotion transitions/new scene types. See [Design Studio](docs/DESIGN_STUDIO.md).
+
+**Made for India (October 2026).** Festival greetings, shop offers and menus, admissions,
+invitations and ₹ / BHK / RERA listings with Indian festive themes. A one-screen chooser lets you
+type your details with a live preview, then download a PNG or create. Your business details are
+remembered on the device. The [review and Indic-language plan](docs/DESIGN_STUDIO_REVIEW.md) covers
+the next phase: Telugu, Hindi, Kannada, Tamil and Malayalam.
 
 **Lesson Video is now implemented with Remotion.** Create structured lessons, edit four scene
 types, preview, save and render a silent 1080p MP4 locally. Use **Quick Create → Create Lesson Video**

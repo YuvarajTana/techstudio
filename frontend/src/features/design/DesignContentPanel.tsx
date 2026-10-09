@@ -131,11 +131,19 @@ function SlotField({slot, page, uploads, onChange}: {slot: SlotDef; page: Design
       const cards = Array.isArray(value) ? (value as CardValue[]) : [];
       return (
         <div className={label}>{slot.label}
-          <Rows items={cards} max={slot.maxItems} make={() => ({title: 'New item', body: ''})} onChange={onChange} render={(card, update) => (
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-1"><input className={input} value={card.title} onChange={(event) => update({...card, title: event.target.value})} aria-label="Title" /><IconSelect value={card.icon} onChange={(icon) => update({...card, icon})} /></div>
-              <textarea className={`${input} min-h-[40px]`} value={card.body ?? ''} placeholder="Details (optional)" onChange={(event) => update({...card, body: event.target.value || undefined})} />
-            </div>
+          <Rows items={cards} max={slot.maxItems} make={() => (slot.name === 'items' ? {title: 'New item', body: '₹'} : {title: 'New item', body: ''})} onChange={onChange} render={(card, update) => (
+            // Offer items are name + price and have no icon.
+            slot.name === 'items' ? (
+              <div className="flex gap-1">
+                <input className={input} value={card.title} onChange={(event) => update({...card, title: event.target.value})} aria-label="Item" />
+                <input className={`${input} w-28`} value={card.body ?? ''} placeholder="₹ price" onChange={(event) => update({...card, body: event.target.value || undefined})} aria-label="Price" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1"><input className={input} value={card.title} onChange={(event) => update({...card, title: event.target.value})} aria-label="Title" /><IconSelect value={card.icon} onChange={(icon) => update({...card, icon})} /></div>
+                <textarea className={`${input} min-h-[40px]`} value={card.body ?? ''} placeholder="Details (optional)" onChange={(event) => update({...card, body: event.target.value || undefined})} />
+              </div>
+            )
           )} />
         </div>
       );
@@ -146,8 +154,10 @@ function SlotField({slot, page, uploads, onChange}: {slot: SlotDef; page: Design
     }
     case 'facts': {
       const facts = (value && typeof value === 'object' ? value : {}) as FactsValue;
-      const number = (key: 'beds' | 'baths' | 'sqft' | 'parking', text: string) => <label key={key} className={label}>{text}<input className={input} type="number" min={0} value={facts[key] ?? ''} onChange={(event) => onChange({...facts, [key]: event.target.value === '' ? undefined : Number(event.target.value)})} /></label>;
-      return <div className={label}>{slot.label}<div className="grid grid-cols-2 gap-1">{number('beds', 'Beds')}{number('baths', 'Baths')}{number('sqft', 'Sq ft')}{number('parking', 'Parking')}<label className={`${label} col-span-2`}>Lot<input className={input} value={facts.lot ?? ''} onChange={(event) => onChange({...facts, lot: event.target.value || undefined})} /></label></div></div>;
+      const number = (key: 'bhk' | 'beds' | 'baths' | 'sqft' | 'parking', text: string) => <label key={key} className={label}>{text}<input className={input} type="number" min={0} value={facts[key] ?? ''} onChange={(event) => onChange({...facts, [key]: event.target.value === '' ? undefined : Number(event.target.value)})} /></label>;
+      const text = (key: 'lot' | 'facing', title: string, placeholder: string) => <label key={key} className={label}>{title}<input className={input} placeholder={placeholder} value={facts[key] ?? ''} onChange={(event) => onChange({...facts, [key]: event.target.value || undefined})} /></label>;
+      // BHK replaces Beds on the design when both are set (Indian listings).
+      return <div className={label}>{slot.label}<div className="grid grid-cols-2 gap-1">{number('bhk', 'BHK')}{number('beds', 'Beds')}{number('baths', 'Baths')}{number('sqft', 'Sq ft')}{number('parking', 'Parking')}{text('facing', 'Facing', 'East facing')}<span className="col-span-2">{text('lot', 'Lot / plot size', '150 – 400 sq yd')}</span></div></div>;
     }
     case 'code': {
       const code = (value && typeof value === 'object' ? value : {language: 'text', source: ''}) as CodeValue;

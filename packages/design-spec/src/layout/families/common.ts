@@ -48,7 +48,7 @@ export function cardColumns(n: number, area: Box, variant: string): number {
 
 /** Icon + text chips in one row (property facts). Returns height used. */
 export function factRow(b: LayoutBuilder, area: Box, facts: FactsValue, opts: { color?: string; iconColor?: string; size?: number } = {}): number {
-  const chips = factChips(facts);
+  const chips = factChips(facts, b.ctx.locale);
   if (!chips.length) return 0;
   const h = Math.min(area.h, b.s(opts.size ?? 52));
   const gap = b.s(18);

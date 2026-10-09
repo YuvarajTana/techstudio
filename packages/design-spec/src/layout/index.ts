@@ -2,6 +2,7 @@ import { requireFormat } from '../formats';
 import { requireTheme } from '../themes';
 import { architectureFlow, codeExplainer, comparison, conceptCards } from './families/tech';
 import { justSold, listingHero, openHouse, propertyFeatureGrid } from './families/realEstate';
+import { eventInvite, festivalGreeting, offerPromo } from './families/occasion';
 import type { DesignSpec, LayoutFamily, Primitive } from '../types';
 
 export const LAYOUT_FAMILIES: LayoutFamily[] = [
@@ -13,6 +14,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
   openHouse,
   propertyFeatureGrid,
   justSold,
+  festivalGreeting,
+  offerPromo,
+  eventInvite,
 ];
 
 const BY_ID = new Map(LAYOUT_FAMILIES.map((family) => [family.id, family]));
@@ -37,6 +41,7 @@ export function layoutPage(spec: DesignSpec, pageIndex: number): Primitive[] {
     theme: requireTheme(spec.theme),
     page: { ...page, variant: page.variant ?? family.variants[0] },
     brand: spec.brand,
+    locale: spec.locale,
     pageIndex,
     pageCount: spec.pages.length,
   });

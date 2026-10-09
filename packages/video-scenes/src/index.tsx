@@ -28,6 +28,12 @@ import "@fontsource/jetbrains-mono/latin-700.css";
 import "@fontsource/playfair-display/latin-400.css";
 import "@fontsource/playfair-display/latin-400-italic.css";
 import "@fontsource/playfair-display/latin-700.css";
+// latin-ext carries the rupee sign (₹) for Inter and Playfair Display.
+import "@fontsource/inter/latin-ext-400.css";
+import "@fontsource/inter/latin-ext-600.css";
+import "@fontsource/inter/latin-ext-700.css";
+import "@fontsource/playfair-display/latin-ext-400.css";
+import "@fontsource/playfair-display/latin-ext-700.css";
 import {CreativeVideo} from "./CreativeVideo";
 import type {VideoSpec} from "@teckstudio/lesson-video";
 export {CreativeVideo};

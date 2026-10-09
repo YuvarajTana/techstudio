@@ -80,11 +80,12 @@ function validateSlot(errors: string[], warnings: string[], path: string, slot: 
       break;
     case 'facts':
       if (!isObject(value)) { errors.push(`${path} must be an object.`); break; }
-      for (const key of ['beds', 'baths', 'sqft', 'parking'] as const) {
+      for (const key of ['bhk', 'beds', 'baths', 'sqft', 'parking'] as const) {
         const n = value[key];
         if (n !== undefined && (typeof n !== 'number' || !Number.isFinite(n) || n < 0)) errors.push(`${path}.${key} must be a non-negative number.`);
       }
       if (value.lot !== undefined) checkLength(errors, `${path}.lot`, value.lot, 32);
+      if (value.facing !== undefined) checkLength(errors, `${path}.facing`, value.facing, 24);
       break;
     case 'code':
       if (!isObject(value)) { errors.push(`${path} must be {language, source}.`); break; }
@@ -165,6 +166,7 @@ export function validateDesignSpec(value: unknown): DesignValidation {
   checkLength(errors, '/title', spec.title, 120);
   if (!isString(spec.format) || !getFormat(spec.format)) errors.push(`/format "${String(spec.format)}" is not a known format.`);
   if (!isString(spec.theme) || !getTheme(spec.theme)) errors.push(`/theme "${String(spec.theme)}" is not a known theme.`);
+  if (spec.locale !== undefined && (!isString(spec.locale) || !/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(spec.locale))) errors.push(`/locale "${String(spec.locale)}" is not a BCP 47 tag such as "en-IN".`);
   if (!Array.isArray(spec.pages) || spec.pages.length === 0) errors.push('/pages needs at least one page.');
   else if (spec.pages.length > MAX_PAGES) errors.push(`/pages allows at most ${MAX_PAGES} pages.`);
   if (errors.length) return { errors, warnings };

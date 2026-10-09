@@ -13,6 +13,11 @@ import '@fontsource/jetbrains-mono/latin-400.css';
 import '@fontsource/jetbrains-mono/latin-700.css';
 import '@fontsource/playfair-display/latin-400.css';
 import '@fontsource/playfair-display/latin-700.css';
+import '@fontsource/inter/latin-ext-400.css';
+import '@fontsource/inter/latin-ext-600.css';
+import '@fontsource/inter/latin-ext-700.css';
+import '@fontsource/playfair-display/latin-ext-400.css';
+import '@fontsource/playfair-display/latin-ext-700.css';
 import {STARTER_TEMPLATES, adaptLegacyPosterTemplate, instantiateTemplate} from '@teckstudio/design-spec/catalog';
 import {renderDesignToProjectData} from '@teckstudio/design-spec/fabric';
 import {TECH_POSTER_TEMPLATES} from '../../frontend/src/data/techPosterTemplates';
@@ -98,4 +103,8 @@ function DesignChecks() {
   );
 }
 
-registerRoot(() => <Composition id="DesignChecks" component={DesignChecks} width={1600} height={2800} fps={30} durationInFrames={1} />);
+// One 300px tile (plus label and gap) per native-format page, five per row.
+const previewCount = STARTER_TEMPLATES.reduce((sum, template) => sum + template.spec.pages.length, 0);
+const sheetHeight = Math.max(2800, 32 + Math.ceil(previewCount / 5) * 334);
+
+registerRoot(() => <Composition id="DesignChecks" component={DesignChecks} width={1600} height={sheetHeight} fps={30} durationInFrames={1} />);

@@ -6,6 +6,8 @@
  */
 
 export type FormatKind = 'social' | 'print' | 'slide' | 'video' | 'web';
+/** Use case a template, theme or layout family is written for. */
+export type Vertical = 'tech' | 'real-estate' | 'business' | 'festival' | 'events' | 'education' | 'generic';
 export type LayoutClass = 'wide' | 'tall' | 'square';
 export type VideoPresetId = 'landscape-1080p' | 'portrait-1080p' | 'square-1080' | 'portrait-4x5';
 
@@ -32,7 +34,7 @@ export interface ThemeTokens {
   id: string;
   label: string;
   mode: 'light' | 'dark';
-  vertical: 'tech' | 'real-estate' | 'generic';
+  vertical: Vertical;
   color: {
     background: string;
     surface: string;
@@ -47,7 +49,12 @@ export interface ThemeTokens {
   };
   font: { heading: FontRef; body: FontRef; mono: FontRef };
   radius: number;
-  decoration: 'none' | 'grid' | 'glow' | 'rule';
+  /**
+   * Background ornament. `toran` (bunting along the top), `mandala` (rings in
+   * two corners), `kolam` (dotted frame), `kasavu` (gold edge bands) and
+   * `tiranga` (saffron/green edge bands) are Indian festive motifs.
+   */
+  decoration: 'none' | 'grid' | 'glow' | 'rule' | 'toran' | 'mandala' | 'kolam' | 'kasavu' | 'tiranga';
 }
 
 export interface IconDef {
@@ -85,11 +92,15 @@ export interface StatValue {
   label: string;
 }
 export interface FactsValue {
+  /** Indian listings: "3 BHK". Shown instead of beds when set. */
+  bhk?: number;
   beds?: number;
   baths?: number;
   sqft?: number;
   lot?: string;
   parking?: number;
+  /** Door facing, e.g. "East facing" (Vastu). */
+  facing?: string;
 }
 export interface CodeValue {
   language: 'python' | 'javascript' | 'typescript' | 'sql' | 'bash' | 'json' | 'text';
@@ -178,6 +189,12 @@ export interface DesignSpec {
   title: string;
   format: string;
   theme: string;
+  /**
+   * BCP 47 locale of the content, e.g. "en-IN". Drives number formatting
+   * today (1,20,000 grouping); the planned Indic-language phase will also use
+   * it to pick script fonts and text measurement.
+   */
+  locale?: string;
   brand?: DesignBrand;
   pages: DesignPage[];
 }
@@ -247,6 +264,8 @@ export interface LayoutContext {
   theme: ThemeTokens;
   page: DesignPage;
   brand?: DesignBrand;
+  /** The spec's locale (see DesignSpec.locale). */
+  locale?: string;
   pageIndex: number;
   pageCount: number;
 }
@@ -254,7 +273,7 @@ export interface LayoutContext {
 export interface LayoutFamily {
   id: string;
   label: string;
-  vertical: 'tech' | 'real-estate' | 'generic';
+  vertical: Vertical;
   description: string;
   variants: string[];
   slots: SlotDef[];

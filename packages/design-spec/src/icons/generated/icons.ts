@@ -1077,6 +1077,356 @@ export const ICONS: Record<string, IconDef> = {
   "license": "MIT",
   "trademark": false
  },
+ "compass": {
+  "set": "tabler",
+  "slug": "compass",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M8 16l2 -6l6 -2l-2 6l-6 2",
+   "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0",
+   "M12 3l0 2",
+   "M12 19l0 2",
+   "M3 12l2 0",
+   "M19 12l2 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "price-inr": {
+  "set": "tabler",
+  "slug": "currency-rupee",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M18 5h-11h3a4 4 0 0 1 0 8h-3l6 6",
+   "M7 9l11 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "gift": {
+  "set": "tabler",
+  "slug": "gift",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M3 9a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1l0 -2",
+   "M12 8l0 13",
+   "M19 12v7a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-7",
+   "M7.5 8a2.5 2.5 0 0 1 0 -5a4.8 8 0 0 1 4.5 5a4.8 8 0 0 1 4.5 -5a2.5 2.5 0 0 1 0 5"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "discount": {
+  "set": "tabler",
+  "slug": "rosette-discount",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M9 15l6 -6",
+   "M9 9.5a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0",
+   "M14 14.5a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0",
+   "M5 7.2a2.2 2.2 0 0 1 2.2 -2.2h1a2.2 2.2 0 0 0 1.55 -.64l.7 -.7a2.2 2.2 0 0 1 3.12 0l.7 .7a2.2 2.2 0 0 0 1.55 .64h1a2.2 2.2 0 0 1 2.2 2.2v1a2.2 2.2 0 0 0 .64 1.55l.7 .7a2.2 2.2 0 0 1 0 3.12l-.7 .7a2.2 2.2 0 0 0 -.64 1.55v1a2.2 2.2 0 0 1 -2.2 2.2h-1a2.2 2.2 0 0 0 -1.55 .64l-.7 .7a2.2 2.2 0 0 1 -3.12 0l-.7 -.7a2.2 2.2 0 0 0 -1.55 -.64h-1a2.2 2.2 0 0 1 -2.2 -2.2v-1a2.2 2.2 0 0 0 -.64 -1.55l-.7 -.7a2.2 2.2 0 0 1 0 -3.12l.7 -.7a2.2 2.2 0 0 0 .64 -1.55v-1"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "shopping-bag": {
+  "set": "tabler",
+  "slug": "shopping-bag",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304",
+   "M9 11v-5a3 3 0 0 1 6 0v5"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "store": {
+  "set": "tabler",
+  "slug": "building-store",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M3 21l18 0",
+   "M3 7v1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1h-18l2 -4h14l2 4",
+   "M5 21l0 -10.15",
+   "M19 21l0 -10.15",
+   "M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "confetti": {
+  "set": "tabler",
+  "slug": "confetti",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M4 5h2",
+   "M5 4v2",
+   "M11.5 4l-.5 2",
+   "M18 5h2",
+   "M19 4v2",
+   "M15 9l-1 1",
+   "M18 13l2 -.5",
+   "M18 19h2",
+   "M19 18v2",
+   "M14 16.518l-6.518 -6.518l-4.39 9.58a1 1 0 0 0 1.329 1.329l9.579 -4.39"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "star": {
+  "set": "tabler",
+  "slug": "star",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873l-6.158 -3.245"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "heart": {
+  "set": "tabler",
+  "slug": "heart",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "moon-stars": {
+  "set": "tabler",
+  "slug": "moon-stars",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008",
+   "M17 4a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2",
+   "M19 11h2m-1 -1v2"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "candle": {
+  "set": "tabler",
+  "slug": "candle",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M9 21h6v-10a1 1 0 0 0 -1 -1h-4a1 1 0 0 0 -1 1l0 10",
+   "M12 2l1.465 1.638a2 2 0 1 1 -3.015 .099l1.55 -1.737"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "flower": {
+  "set": "tabler",
+  "slug": "flower",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+   "M12 2a3 3 0 0 1 3 3c0 .562 -.259 1.442 -.776 2.64l-.724 1.36l1.76 -1.893c.499 -.6 .922 -1 1.27 -1.205a2.968 2.968 0 0 1 4.07 1.099a3.011 3.011 0 0 1 -1.09 4.098c-.374 .217 -.99 .396 -1.846 .535l-2.664 .366l2.4 .326c1 .145 1.698 .337 2.11 .576a3.011 3.011 0 0 1 1.09 4.098a2.968 2.968 0 0 1 -4.07 1.098c-.348 -.202 -.771 -.604 -1.27 -1.205l-1.76 -1.893l.724 1.36c.516 1.199 .776 2.079 .776 2.64a3 3 0 0 1 -6 0c0 -.562 .259 -1.442 .776 -2.64l.724 -1.36l-1.76 1.893c-.499 .601 -.922 1 -1.27 1.205a2.968 2.968 0 0 1 -4.07 -1.098a3.011 3.011 0 0 1 1.09 -4.098c.374 -.218 .99 -.396 1.846 -.536l2.664 -.366l-2.4 -.325c-1 -.145 -1.698 -.337 -2.11 -.576a3.011 3.011 0 0 1 -1.09 -4.099a2.968 2.968 0 0 1 4.07 -1.099c.348 .203 .771 .604 1.27 1.205l1.76 1.894c-1 -2.292 -1.5 -3.625 -1.5 -4a3 3 0 0 1 3 -3"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "restaurant": {
+  "set": "tabler",
+  "slug": "tools-kitchen-2",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M19 3v12h-5c-.023 -3.681 .184 -7.406 5 -12m0 12v6h-1v-3m-10 -14v17m-3 -17v3a3 3 0 1 0 6 0v-3"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "soup": {
+  "set": "tabler",
+  "slug": "soup",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M4 11h16a1 1 0 0 1 1 1v.5c0 1.5 -2.517 5.573 -4 6.5v1a1 1 0 0 1 -1 1h-8a1 1 0 0 1 -1 -1v-1c-1.687 -1.054 -4 -5 -4 -6.5v-.5a1 1 0 0 1 1 -1",
+   "M12 4a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2",
+   "M16 4a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2",
+   "M8 4a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "calendar-event": {
+  "set": "tabler",
+  "slug": "calendar-event",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12",
+   "M16 3l0 4",
+   "M8 3l0 4",
+   "M4 11l16 0",
+   "M8 15h2v2h-2l0 -2"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "trophy": {
+  "set": "tabler",
+  "slug": "trophy",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M8 21l8 0",
+   "M12 17l0 4",
+   "M7 4l10 0",
+   "M17 4v8a5 5 0 0 1 -10 0v-8",
+   "M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
+   "M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "certificate": {
+  "set": "tabler",
+  "slug": "certificate",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M12 15a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+   "M13 17.5v4.5l2 -1.5l2 1.5v-4.5",
+   "M10 19h-5a2 2 0 0 1 -2 -2v-10c0 -1.1 .9 -2 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -1 1.73",
+   "M6 9l12 0",
+   "M6 12l3 0",
+   "M6 15l2 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "users-group": {
+  "set": "tabler",
+  "slug": "users-group",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0",
+   "M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1",
+   "M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0",
+   "M17 10h2a2 2 0 0 1 2 2v1",
+   "M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0",
+   "M3 13v-1a2 2 0 0 1 2 -2h2"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "flag": {
+  "set": "tabler",
+  "slug": "flag",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M5 5a5 5 0 0 1 7 0a5 5 0 0 0 7 0v9a5 5 0 0 1 -7 0a5 5 0 0 0 -7 0v-9",
+   "M5 21v-7"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "shield-check": {
+  "set": "tabler",
+  "slug": "shield-check",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06",
+   "M15 19l2 2l4 -4"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "elevator": {
+  "set": "tabler",
+  "slug": "elevator",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M5 5a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1l0 -14",
+   "M10 10l2 -2l2 2",
+   "M10 14l2 2l2 -2"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "gym": {
+  "set": "tabler",
+  "slug": "barbell",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M2 12h1",
+   "M6 8h-2a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h2",
+   "M6 7v10a1 1 0 0 0 1 1h1a1 1 0 0 0 1 -1v-10a1 1 0 0 0 -1 -1h-1a1 1 0 0 0 -1 1",
+   "M9 12h6",
+   "M15 7v10a1 1 0 0 0 1 1h1a1 1 0 0 0 1 -1v-10a1 1 0 0 0 -1 -1h-1a1 1 0 0 0 -1 1",
+   "M18 8h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2",
+   "M22 12h-1"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "gated-community": {
+  "set": "tabler",
+  "slug": "building-community",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M8 9l5 5v7h-5v-4m0 4h-5v-7l5 -5m1 1v-6a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v17h-8",
+   "M13 7l0 .01",
+   "M17 7l0 .01",
+   "M17 11l0 .01",
+   "M17 15l0 .01"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "metro": {
+  "set": "tabler",
+  "slug": "train",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M21 13c0 -3.87 -3.37 -7 -10 -7h-8",
+   "M3 15h16a2 2 0 0 0 2 -2",
+   "M3 6v5h17.5",
+   "M3 11v4",
+   "M8 11v-5",
+   "M13 11v-4.5",
+   "M3 19h18"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
+ "delivery": {
+  "set": "tabler",
+  "slug": "truck-delivery",
+  "style": "stroke",
+  "viewBox": "0 0 24 24",
+  "paths": [
+   "M5 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
+   "M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
+   "M5 17h-2v-4m-1 -8h11v12m-4 0h6m4 0h2v-6h-8m0 -5h5l3 5",
+   "M3 9l4 0"
+  ],
+  "license": "MIT",
+  "trademark": false
+ },
  "logo:aws": {
   "set": "tabler",
   "slug": "brand-aws",

@@ -141,6 +141,7 @@ export const PRESET_SIZES: Record<CreativePreset, { width: number; height: numbe
 export const VIDEO_THEME_IDS = [
   "tech-blue", "purple-ai", "minimal-light", "corporate-navy", "black-gold", "green-growth",
   "orange-energy", "neon-future", "estate-classic", "estate-modern", "estate-luxe",
+  "marigold", "diwali-night", "rangoli", "kasavu", "shaadi-maroon", "tiranga", "bazaar",
 ] as const;
 export interface CreativeVideoSpec {
   schema: "creative-video/v2";

@@ -24,6 +24,23 @@ export const font = {
   playfair: { family: 'Playfair Display', fallback: 'serif' } as FontRef,
 };
 
+/**
+ * Characters a bundled family cannot draw, checked against the @fontsource
+ * files: Outfit and JetBrains Mono have no rupee sign (Inter and Playfair
+ * Display have it in their latin-ext subset). None of the four covers Indic
+ * scripts yet; the Indic-language phase will add script fonts here.
+ */
+const MISSING_GLYPHS: Record<string, RegExp> = {
+  Outfit: /\u20B9/,
+  'JetBrains Mono': /\u20B9/,
+};
+
+/** False when `family` is known to lack a glyph used in `text`. */
+export function fontCovers(family: string, text: string): boolean {
+  const missing = MISSING_GLYPHS[family];
+  return !missing || !missing.test(text);
+}
+
 export function cssFontStack(ref: FontRef): string {
   return `"${ref.family}", ${ref.fallback}`;
 }

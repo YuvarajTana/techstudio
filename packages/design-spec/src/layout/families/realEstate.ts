@@ -25,6 +25,7 @@ export const listingHero: LayoutFamily = {
     { name: 'features', kind: 'list', label: 'Highlights', maxItems: 4, maxChars: 60 },
     { name: 'agent', kind: 'agent', label: 'Agent' },
     { name: 'cta', kind: 'text', label: 'Call to action', maxChars: 60 },
+    { name: 'legal', kind: 'text', label: 'Fine print (e.g. RERA registration no.)', maxChars: 120 },
   ],
   layout(ctx) {
     const b = new LayoutBuilder(ctx);
@@ -67,6 +68,7 @@ export const listingHero: LayoutFamily = {
     }
     const features = listSlot(page, 'features');
     bulletList(b, { x: area.x, y, w: area.w, h: area.y + area.h - y }, features, 'features', { columns: wide || features.length < 3 ? 1 : 2, size: 26, maxRowHeight: 70 });
+    b.footnote('legal', textSlot(page, 'legal'), { x: area.x, w: area.w });
     b.brandMark();
     return b.primitives;
   },
