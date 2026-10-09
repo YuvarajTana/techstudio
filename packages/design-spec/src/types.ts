@@ -72,6 +72,8 @@ export interface ImageValue {
   src: string;
   alt?: string;
   credit?: string;
+  /** Owned media id (editor upload) so the image can be used in videos. */
+  assetId?: string;
 }
 export interface CardValue {
   title: string;

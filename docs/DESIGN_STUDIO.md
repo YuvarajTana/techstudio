@@ -27,9 +27,15 @@ flowchart LR
 ## Using it
 
 - **Dashboard → Design Studio** (`/design`). Filter by *Tech teaching* or *Real estate* and by output. Pick a template, then a format and theme, then choose **Create poster**, **Create slide deck** or **Create motion video**.
+- **Content tab (editor).** Design Studio projects get a **Content** tab in the right panel. It is a form for the active page's slots (text, cards, stats, property facts, code, flow steps, agent, photos from your uploads) and speaker notes.
+  - It starts from the text currently on the canvas.
+  - **Apply to page** re-lays out that page and saves the updated design. Manual position and style changes on that page are replaced; you are asked to confirm first.
+  - **Create copy in this format** makes a new project in another size from the current content.
 - **Decks.** The Pages panel shows the slides.
   - **Export all as PDF** writes one PDF page per slide, in order. Print formats (A4, A3, Letter) use their physical size.
-  - **Make motion video from template** builds a video from the template's content. Text you edited on the canvas is not included.
+  - **Make motion video** builds a video from the design's current content. Canvas text edits are read back first.
+    - Photos from your uploads and from the shared photo library become video media.
+    - Other images (remote URLs, placeholders) are left as a photo slot.
 - **Video editor.** Available scene types: slide, code walkthrough, property listing (Ken Burns photo pans), animated stats, logo intro/outro, plus the original types.
   - Per scene you can set easing, staggered reveals and a transition: fade, slide, wipe, clock-wipe or zoom.
   - Formats: 1920×1080, 1080×1920, 1080×1080 and 1080×1350. Theme can be *Classic paper* or any design theme.
@@ -77,6 +83,7 @@ cd backend && pytest test_creative_spec_parity.py test_design_video_parity.py \
 
 ## Known limits / next steps
 
-- Template photos are placeholders. In videos, listing scenes show a photo slot until you upload photos in the video editor. Design images are not yet mapped automatically to owned media assets (`toCreativeVideo`'s `resolveImage` hook is ready for that).
-- "Make motion video" uses the template content, not later canvas edits.
-- The older Fabric timeline video export (browser frames → FFmpeg) is unchanged and separate from Remotion.
+- **Where canvas edits are read from.** Only objects created from the template keep their slot tag. An image you add yourself (instead of choosing it in the Content tab) is not linked to a slot, so pick photos in the Content tab if they should reach the video.
+- **Library photos in video.** These use the id `<category>__<file stem>` and must be original files under `backend/media/asset-library/<category>/`.
+- **Real-estate photos** still need network access to `commons.wikimedia.org` and `upload.wikimedia.org` for `scripts/fetch_cc0_photos.py`.
+- **Canvas timeline export.** The older Fabric timeline video export (browser frames → FFmpeg) is unchanged and separate from Remotion.

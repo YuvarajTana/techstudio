@@ -116,4 +116,15 @@ def metadata(
     db: Session = Depends(get_db),
 ):
     record, _, meta = resolve_owned_asset(db, user.id, source, asset_id)
+    if source == "library":
+        return {
+            "id": asset_id,
+            "source": source,
+            "kind": "image",
+            "mime_type": record.mime_type,
+            "width": record.width,
+            "height": record.height,
+            "sha256": meta["sha256"],
+            "content_url": f"/api/creative/media/library/{asset_id}/content",
+        }
     return media_response(record, source, meta)

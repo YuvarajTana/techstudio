@@ -108,6 +108,15 @@ export const CUSTOM_FABRIC_PROPERTIES = [
   'posterSpecTheme',
   'posterSpecCanvasWidth',
   'posterSpecCanvasHeight',
+  // DesignSpec provenance (packages/design-spec/src/fabric): lets the editor
+  // read slot edits back into the spec for re-layout and video.
+  'designSpecId',
+  'designPageId',
+  'designLayout',
+  'designRole',
+  'designSlot',
+  'designPlaceholder',
+  'designIcon',
   'editorialRole',
   'editorialTagId',
   'editorialTagRole',

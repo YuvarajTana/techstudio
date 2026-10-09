@@ -1,21 +1,25 @@
-import type {DesignSpec} from '@teckstudio/design-spec';
-import {toCreativeVideo} from '@teckstudio/design-spec/video';
+import {specFromPages, type CanvasPage, type DesignSpec} from '@teckstudio/design-spec';
+import {resolveDesignImage, toCreativeVideo} from '@teckstudio/design-spec/video';
 import {apiJson} from '../../services/apiClient';
 import type {DesignContext} from './designProject';
 
-/**
- * Turn a DesignSpec (poster or deck) into a motion video project and return its id.
- * Template photos are placeholders, so listing scenes start with a photo slot the
- * user fills in the video editor (uploads become owned media assets there).
- */
+/** Turn a DesignSpec (poster or deck) into a motion video project and return its id. */
 export async function createDesignVideo(spec: DesignSpec, templateId?: string): Promise<string> {
-  const video = toCreativeVideo(spec);
+  const video = toCreativeVideo(spec, {resolveImage: resolveDesignImage});
   const context: DesignContext = {schema: 'design-context/v1', template_id: templateId, design_spec: spec};
   const result = await apiJson<{project_id: string}>('/api/creative-videos', {
     method: 'POST',
     body: JSON.stringify({spec: video, creative_context: context}),
   });
   return result.project_id;
+}
+
+/**
+ * Video from an open Design Studio project: canvas text and photo edits are
+ * read back into the stored spec first, so the video matches what is on screen.
+ */
+export async function createDesignVideoFromPages(spec: DesignSpec, pages: CanvasPage[], templateId?: string): Promise<string> {
+  return createDesignVideo(specFromPages(spec, pages).spec, templateId);
 }
 
 /** The DesignSpec stored on a project created by the Design Studio, if any. */

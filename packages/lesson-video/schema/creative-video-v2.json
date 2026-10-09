@@ -96,7 +96,8 @@
           "source": {
             "enum": [
               "uploaded",
-              "generated"
+              "generated",
+              "library"
             ]
           },
           "assetId": {

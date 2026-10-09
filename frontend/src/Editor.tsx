@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState, useEffect } from 'react';
+import React, { useLayoutEffect, useState, useEffect, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { Toolbar } from './components/editor/Toolbar';
 import { Sidebar } from './components/editor/Sidebar';
@@ -25,10 +25,13 @@ import { BackgroundPatterns } from './components/editor/BackgroundPatterns';
 import { TimelinePanel } from './components/editor/TimelinePanel';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditorStore } from './store/useEditorStore';
-import { Sparkles, Image, Layers, Palette, Wand2, Maximize, ShieldCheck, Download, Grid3x3, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Sparkles, Image, Layers, Palette, Wand2, Maximize, ShieldCheck, Download, Grid3x3, PanelRightClose, PanelRightOpen, LayoutTemplate } from 'lucide-react';
+import { designSpecFromContext } from './features/design/designVideo';
 
-type RightPanel = 'ai' | 'assets' | 'brand' | 'properties' | 'effects' | 'resize' | 'audit' | 'colors' | 'text-styles' | 'export' | 'templates' | 'patterns';
-const RIGHT_PANELS: RightPanel[] = ['ai', 'assets', 'brand', 'properties', 'effects', 'resize', 'audit', 'colors', 'text-styles', 'export', 'templates', 'patterns'];
+const DesignContentPanel = lazy(() => import('./features/design/DesignContentPanel'));
+
+type RightPanel = 'content' | 'ai' | 'assets' | 'brand' | 'properties' | 'effects' | 'resize' | 'audit' | 'colors' | 'text-styles' | 'export' | 'templates' | 'patterns';
+const RIGHT_PANELS: RightPanel[] = ['content', 'ai', 'assets', 'brand', 'properties', 'effects', 'resize', 'audit', 'colors', 'text-styles', 'export', 'templates', 'patterns'];
 
 const App: React.FC = () => {
   // Initialize canvas-level keyboard listeners
@@ -41,6 +44,7 @@ const App: React.FC = () => {
   // DesignSpec projects also store a creative_context (the spec), but they are
   // edited like any canvas design; only Creative Studio posters get that panel.
   const isCreativePoster = Boolean(creativeContext) && creativeContext?.schema !== 'design-context/v1';
+  const isDesignSpec = Boolean(designSpecFromContext(creativeContext));
   const [rightPanel, setRightPanel] = useState<RightPanel>('ai');
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -145,6 +149,7 @@ const App: React.FC = () => {
             {!rightPanelCollapsed && (
               <div className="teckstudio-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-xl border border-white/[0.06] bg-black/20 p-1">
                 {[
+                  ...(isDesignSpec ? [{ id: 'content' as RightPanel, label: 'Content', icon: LayoutTemplate, accent: 'text-violet-300 bg-violet-500/10 border-violet-400/30' }] : []),
                   { id: 'ai' as RightPanel, label: 'AI', icon: Sparkles, accent: 'text-violet-300 bg-violet-500/10 border-violet-400/30' },
                   { id: 'colors' as RightPanel, label: 'Colors', icon: Palette, accent: 'text-orange-300 bg-orange-500/10 border-orange-400/30' },
                   { id: 'assets' as RightPanel, label: 'Assets', icon: Image, accent: 'text-cyan-300 bg-cyan-500/10 border-cyan-400/30' },
@@ -179,6 +184,13 @@ const App: React.FC = () => {
 
           {/* Panel Content */}
           {!rightPanelCollapsed && <div className="flex-1 min-h-0 overflow-hidden">
+            {rightPanel === 'content' && isDesignSpec && (
+              <div className="teckstudio-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain p-3 pb-24">
+                <Suspense fallback={<p className="text-xs text-zinc-500">Loading…</p>}>
+                  <DesignContentPanel key={id} />
+                </Suspense>
+              </div>
+            )}
             {rightPanel === 'ai' && (
               <div className="teckstudio-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain p-3 pb-24">
                 {isCreativePoster ? <CreativePosterPanel /> : <AIAssistant />}
